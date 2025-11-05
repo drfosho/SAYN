@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, Image, Pressable, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -6,15 +6,22 @@ import Animated, {
   withSpring,
   withTiming,
   Easing,
+  withSequence,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { PowerRing } from './PowerRing';
+import { RankBadge } from './RankBadge';
+import { ElectricBurst } from './ElectricBurst';
+import { ScanLines } from './ScanLines';
+import { PowerUpAnimation } from './PowerUpAnimation';
+import { usePowerUp } from '@/hooks/usePowerUp';
+import { getRankFromLevel } from '@/utils/getRankFromLevel';
 
 export interface Post {
   id: string;
   username: string;
-  rank: string;
+  level: number;
   avatarUrl: string;
   content: string;
   powerLevel: number;
@@ -28,28 +35,56 @@ interface PostCardProps {
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
+  const { getPowerUpCount, isPoweredUpByUser, togglePowerUp } = usePowerUp();
+
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(30);
+  const translateY = useSharedValue(40);
+  const scale = useSharedValue(0.9);
   const buttonScale = useSharedValue(1);
+  const flashOpacity = useSharedValue(0);
+  const shakeX = useSharedValue(0);
+  const powerFeedbackOpacity = useSharedValue(0);
+  const powerFeedbackY = useSharedValue(0);
+  const [showElectricBurst, setShowElectricBurst] = useState(false);
+  const [showButtonBurst, setShowButtonBurst] = useState(false);
+  const [showPowerUpAnimation, setShowPowerUpAnimation] = useState(false);
+
+  const isPoweredUp = isPoweredUpByUser(post.id);
+  const powerUpCount = getPowerUpCount(post.id);
+  const userRank = getRankFromLevel(post.level);
 
   useEffect(() => {
     const delay = index * 100;
     setTimeout(() => {
+      // Show electric burst when card slams in
+      setShowElectricBurst(true);
+      setTimeout(() => setShowElectricBurst(false), 300);
+
+      // SHARP, FORCEFUL entrance - no bounce
       opacity.value = withTiming(1, {
-        duration: 500,
-        easing: Easing.out(Easing.ease),
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
       });
-      translateY.value = withTiming(0, {
-        duration: 500,
-        easing: Easing.out(Easing.ease),
+      translateY.value = withSpring(0, {
+        damping: 12, // More aggressive
+        stiffness: 150, // Forceful
+        mass: 1,
+      });
+      scale.value = withTiming(1, {
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
       });
     }, delay);
-  }, [opacity, translateY, index]);
+  }, [opacity, translateY, scale, index]);
 
   const cardAnimatedStyle = useAnimatedStyle(() => {
     return {
       opacity: opacity.value,
-      transform: [{ translateY: translateY.value }],
+      transform: [
+        { translateY: translateY.value },
+        { scale: scale.value },
+        { translateX: shakeX.value },
+      ],
     };
   });
 
@@ -59,41 +94,94 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
     };
   });
 
+  const flashAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: flashOpacity.value,
+  }));
+
+  const powerFeedbackAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: powerFeedbackOpacity.value,
+    transform: [{ translateY: powerFeedbackY.value }],
+  }));
+
   const handlePressIn = () => {
-    buttonScale.value = withSpring(0.95, {
-      damping: 15,
-      stiffness: 300,
+    // Quick, aggressive press
+    buttonScale.value = withTiming(0.92, {
+      duration: 80,
+      easing: Easing.out(Easing.cubic),
     });
   };
 
   const handlePressOut = () => {
-    buttonScale.value = withSpring(1, {
-      damping: 15,
-      stiffness: 300,
-    });
+    // Sharp bounce back - QUICK (150ms total)
+    buttonScale.value = withSequence(
+      withTiming(1.08, { duration: 80, easing: Easing.out(Easing.cubic) }),
+      withTiming(1, { duration: 70, easing: Easing.inOut(Easing.ease) })
+    );
   };
 
-  const handlePowerUp = () => {
-    console.log(`Power up for ${post.username}!`);
+  const handlePowerUp = async () => {
+    const didPowerUp = await togglePowerUp(post.id);
+
+    if (didPowerUp) {
+      // Only show animation when powering up (not unpowering)
+      console.log(`Powered up ${post.username}!`);
+
+      // Brief white screen flash (100ms)
+      flashOpacity.value = 0.1;
+      flashOpacity.value = withTiming(0, { duration: 100 });
+
+      // Subtle screen shake
+      shakeX.value = withSequence(
+        withTiming(4, { duration: 40 }),
+        withTiming(-4, { duration: 40 }),
+        withTiming(3, { duration: 40 }),
+        withTiming(-3, { duration: 40 }),
+        withTiming(0, { duration: 40 })
+      );
+
+      // Show PowerUpAnimation component
+      setShowPowerUpAnimation(true);
+      setTimeout(() => setShowPowerUpAnimation(false), 700);
+
+      // Trigger electric burst effect
+      setShowButtonBurst(true);
+      setTimeout(() => setShowButtonBurst(false), 300);
+    } else {
+      console.log(`Unpowered up ${post.username}`);
+    }
   };
 
   return (
     <Animated.View style={[styles.cardContainer, cardAnimatedStyle]}>
+      {/* PowerUpAnimation overlay */}
+      {showPowerUpAnimation && <PowerUpAnimation />}
+
+      {/* Electric burst when card slams in */}
+      {showElectricBurst && (
+        <View style={styles.burstContainer}>
+          <ElectricBurst size={90} color="#00e5ff" />
+        </View>
+      )}
+
+      {/* Screen flash overlay */}
+      <Animated.View style={[styles.flashOverlay, flashAnimatedStyle]} pointerEvents="none" />
+
       <LinearGradient
-        colors={['#0a0e27', '#1a1f3a', '#0a0e27']}
+        colors={['#0d1128', '#050814', '#0d1128']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.card}
       >
-        {/* Glow effect wrapper */}
-        <View style={styles.glowContainer}>
-          <View style={styles.glow} />
-        </View>
+        {/* Scan lines for tech intensity */}
+        <ScanLines opacity={0.05} lineHeight={2} spacing={4} />
+
+        {/* Subtle vignette for depth */}
+        <View style={styles.vignette} />
 
         {/* User info section */}
         <View style={styles.userSection}>
           <View style={styles.avatarContainer}>
-            <PowerRing size={70} ringWidth={3} />
+            <PowerRing size={70} ringWidth={5} />
             <View style={styles.avatarWrapper}>
               <Image
                 source={{ uri: post.avatarUrl }}
@@ -104,14 +192,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
 
           <View style={styles.userInfo}>
             <Text style={styles.username}>{post.username}</Text>
-            <LinearGradient
-              colors={['#00d4ff', '#ff0099']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.rankBadge}
-            >
-              <Text style={styles.rankText}>{post.rank}</Text>
-            </LinearGradient>
+            {/* Rank badge */}
+            <RankBadge rank={userRank} size="small" animate={false} />
           </View>
         </View>
 
@@ -121,24 +203,53 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
         </View>
 
         {/* Power Up button */}
-        <AnimatedPressable
-          onPress={handlePowerUp}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          style={[styles.powerUpButtonWrapper, buttonAnimatedStyle]}
-        >
-          <LinearGradient
-            colors={['#ff0099', '#ff6b00']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.powerUpButton}
+        <View>
+          {/* "Powered Up by you" indicator */}
+          {isPoweredUp && (
+            <View style={styles.poweredUpIndicator}>
+              <Text style={styles.poweredUpText}>⚡ POWERED UP BY YOU</Text>
+            </View>
+          )}
+
+          <AnimatedPressable
+            onPress={handlePowerUp}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            style={[styles.powerUpButtonWrapper, buttonAnimatedStyle]}
           >
-            <Text style={styles.powerUpText}>⚡ POWER UP</Text>
-            <Text style={styles.powerLevel}>{post.powerLevel}</Text>
-          </LinearGradient>
-          {/* Button glow effect */}
-          <View style={styles.buttonGlow} />
-        </AnimatedPressable>
+            {/* Electric burst effect on press */}
+            {showButtonBurst && (
+              <>
+                <View style={[styles.burstEffect, { top: -35, left: '15%' }]}>
+                  <ElectricBurst size={60} color="#00e5ff" />
+                </View>
+                <View style={[styles.burstEffect, { top: -30, right: '15%' }]}>
+                  <ElectricBurst size={50} color="#ff0080" />
+                </View>
+              </>
+            )}
+
+            <LinearGradient
+              colors={
+                isPoweredUp
+                  ? ['#0d1128', '#1a1f3a']
+                  : ['#ff0080', '#ff4500']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.powerUpButton}
+            >
+              <Text style={styles.powerUpText}>
+                {isPoweredUp ? '⚡ POWERED UP' : '⚡ POWER UP'}
+              </Text>
+              <View style={styles.powerLevelBadge}>
+                <Text style={styles.powerLevel}>{powerUpCount}</Text>
+              </View>
+            </LinearGradient>
+            {/* Button glow effect (only show when not powered up) */}
+            {!isPoweredUp && <View style={styles.buttonGlow} />}
+          </AnimatedPressable>
+        </View>
       </LinearGradient>
     </Animated.View>
   );
@@ -147,45 +258,54 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
 const styles = StyleSheet.create({
   cardContainer: {
     marginHorizontal: 16,
-    marginVertical: 12,
-    borderRadius: 20,
+    marginVertical: 14,
+    borderRadius: 14, // Selective rounding (12-16px max)
     overflow: 'visible',
     ...Platform.select({
       ios: {
-        shadowColor: '#00d4ff',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
+        shadowColor: '#000000',
+        shadowOffset: { width: 8, height: 8 }, // Deeper, longer shadows
+        shadowOpacity: 0.8,
+        shadowRadius: 0,
       },
       android: {
-        elevation: 8,
+        elevation: 16,
       },
     }),
   },
-  card: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
-    overflow: 'hidden',
+  burstContainer: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    zIndex: 10,
   },
-  glowContainer: {
+  flashOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 20,
-    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    zIndex: 100,
+    borderRadius: 14,
   },
-  glow: {
+  card: {
+    borderRadius: 14,
+    padding: 22,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 5, // Thicker borders (4-6px)
+    borderColor: '#000000',
+  },
+  vignette: {
     position: 'absolute',
-    top: -50,
-    left: -50,
-    right: -50,
-    bottom: -50,
-    backgroundColor: 'transparent',
-    borderRadius: 20,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    // Radial gradient effect (vignette)
+    borderRadius: 14,
   },
   userSection: {
     flexDirection: 'row',
@@ -206,8 +326,8 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#1a1f3a',
+    borderWidth: 4, // Bolder border
+    borderColor: '#000000',
   },
   avatar: {
     width: '100%',
@@ -215,72 +335,108 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     flex: 1,
-    gap: 6,
+    gap: 8,
   },
   username: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    letterSpacing: 0.5,
-  },
-  rankBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  rankText: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 19,
+    fontWeight: '900', // Heavier weight
     color: '#ffffff',
     letterSpacing: 1,
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
   },
   contentSection: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   content: {
     fontSize: 16,
-    color: '#c0c5d9',
+    color: '#d0d5e9', // Slightly brighter for contrast
     lineHeight: 24,
+    letterSpacing: 0.3,
   },
   powerUpButtonWrapper: {
     position: 'relative',
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'visible',
+  },
+  burstEffect: {
+    position: 'absolute',
+    zIndex: 10,
+  },
+  poweredUpIndicator: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0, 229, 255, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#00e5ff',
+    marginBottom: 8,
+  },
+  poweredUpText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#00e5ff',
+    letterSpacing: 1.5,
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
   },
   powerUpButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    gap: 8,
+    paddingHorizontal: 26,
+    borderRadius: 14,
+    gap: 10,
+    borderWidth: 5, // Thicker border
+    borderColor: '#000000',
+    shadowColor: '#000',
+    shadowOffset: { width: 6, height: 6 }, // Deeper shadow
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 16,
   },
   powerUpText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '900',
     color: '#ffffff',
-    letterSpacing: 1.5,
+    letterSpacing: 2.5,
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 0,
+  },
+  powerLevelBadge: {
+    backgroundColor: '#000000',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: '#00e5ff',
   },
   powerLevel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#00e5ff',
+    textShadowColor: '#00e5ff',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
   },
   buttonGlow: {
     position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 20,
-    backgroundColor: '#ff0099',
-    opacity: 0.3,
+    top: -8,
+    left: -8,
+    right: -8,
+    bottom: -8,
+    borderRadius: 22,
+    backgroundColor: '#ff0080',
+    opacity: 0.5, // More intense glow
     zIndex: -1,
+    shadowColor: '#ff0080',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 20, // Sharper, more intense glow
   },
 });
