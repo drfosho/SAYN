@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
-export default function LeaderboardScreen() {
+export default function AchievementsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
@@ -12,8 +12,8 @@ export default function LeaderboardScreen() {
         style={styles.background}
       >
         <View style={styles.content}>
-          <Text style={styles.emoji}>🏆</Text>
-          <Text style={styles.title}>LEADERBOARD</Text>
+          <Text style={styles.emoji}>⭐</Text>
+          <Text style={styles.title}>ACHIEVEMENTS</Text>
           <Text style={styles.subtitle}>Coming Soon</Text>
         </View>
       </LinearGradient>

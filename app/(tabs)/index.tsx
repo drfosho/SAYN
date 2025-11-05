@@ -1,98 +1,127 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { StyleSheet, View, Text, FlatList, SafeAreaView, Pressable } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { PostCard, Post } from '@/components/PostCard';
+import { StatusBar } from 'expo-status-bar';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+// Mock data for the feed
+const MOCK_POSTS: Post[] = [
+  {
+    id: '1',
+    username: 'GokuFitness',
+    rank: 'SUPER SAIYAN',
+    avatarUrl: 'https://i.pravatar.cc/150?img=12',
+    content: 'Just hit a new PR on deadlifts! 500lbs feels like unlocking a new transformation. Who else is pushing their limits today? 💪⚡',
+    powerLevel: 9001,
+  },
+  {
+    id: '2',
+    username: 'VegetaPride',
+    rank: 'ELITE WARRIOR',
+    avatarUrl: 'https://i.pravatar.cc/150?img=33',
+    content: 'Finished my morning routine: 100 push-ups, 100 sit-ups, 100 squats, and a 10km run. The prince of all workouts never skips a day!',
+    powerLevel: 8500,
+  },
+  {
+    id: '3',
+    username: 'BulmaTech',
+    rank: 'GENIUS',
+    avatarUrl: 'https://i.pravatar.cc/150?img=45',
+    content: 'New workout tracking tech just dropped! Built an AI that analyzes your power level based on form and intensity. Beta testers wanted! 🚀',
+    powerLevel: 7200,
+  },
+];
 
-export default function HomeScreen() {
+export default function PowerFeedScreen() {
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <LinearGradient
+        colors={['#00d4ff', '#ff0099']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.titleGradient}
+      >
+        <Text style={styles.title}>POWER FEED</Text>
+      </LinearGradient>
+      <Pressable style={styles.profileButton}>
+        <View style={styles.profileIcon}>
+          <Text style={styles.profileEmoji}>👤</Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+
+  const renderPost = ({ item, index }: { item: Post; index: number }) => (
+    <PostCard post={item} index={index} />
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="light" />
+      <LinearGradient
+        colors={['#0a0e27', '#0a0e27']}
+        style={styles.background}
+      >
+        {renderHeader()}
+        <FlatList
+          data={MOCK_POSTS}
+          renderItem={renderPost}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0e27',
+  },
+  background: {
+    flex: 1,
+  },
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 212, 255, 0.2)',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  titleGradient: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    letterSpacing: 2,
+  },
+  profileButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#00d4ff',
+  },
+  profileIcon: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileEmoji: {
+    fontSize: 24,
+  },
+  listContent: {
+    paddingTop: 8,
+    paddingBottom: 100,
   },
 });
