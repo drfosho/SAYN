@@ -37,15 +37,17 @@ export default function SAYNFeedScreen() {
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.logoContainer}>
-        {/* Powerful glow behind logo */}
-        <View style={styles.logoGlow} />
+        {/* Angular container with metallic gradient matching logo */}
         <LinearGradient
-          colors={['#00e5ff', '#ff0080']}
+          colors={['#00e5ff', '#00b8d4', '#ff6b9d', '#ff4081']}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.titleGradient}
         >
-          <Text style={styles.title}>SAYN</Text>
+          {/* Inner gradient for metallic depth */}
+          <View style={styles.titleInner}>
+            <Text style={styles.title}>SAYN</Text>
+          </View>
         </LinearGradient>
       </View>
       <Pressable
@@ -108,41 +110,34 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'visible',
   },
-  logoGlow: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    bottom: -10,
-    backgroundColor: '#00e5ff',
-    opacity: 0.2,
-    borderRadius: 20,
+  titleGradient: {
+    borderRadius: 8,
+    borderWidth: 4,
+    borderColor: '#000000',
     shadowColor: '#00e5ff',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
     elevation: 20,
+    // Angular, slanted appearance like the logo
+    transform: [{ skewX: '-5deg' }],
   },
-  titleGradient: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 5, // Thicker border
-    borderColor: '#000000',
-    shadowColor: '#000',
-    shadowOffset: { width: 6, height: 6 }, // Deeper shadow
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 16,
+  titleInner: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   title: {
-    fontSize: 36, // Bigger, more impactful
+    fontSize: 42,
     fontWeight: '900',
     color: '#ffffff',
-    letterSpacing: 6, // More spacing for power
+    letterSpacing: 8,
+    // Multiple text shadows for metallic depth effect
     textShadowColor: '#000000',
-    textShadowOffset: { width: 4, height: 4 }, // Heavier shadow
-    textShadowRadius: 0,
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 1,
+    // Angular, italic style matching the logo
+    fontStyle: 'italic',
   },
   profileButton: {
     position: 'relative',
