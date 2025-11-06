@@ -16,6 +16,8 @@ import { StatsRow } from '@/components/StatsRow';
 import { AchievementScroll, Achievement } from '@/components/AchievementScroll';
 import { PostsGrid, GridPost } from '@/components/PostsGrid';
 import { FollowButton } from '@/components/FollowButton';
+import { BadgeInfoModal } from '@/components/badges/BadgeInfoModal';
+import { ReportButton } from '@/components/ReportButton';
 import { useFollow } from '@/hooks/useFollow';
 import Animated, {
   useSharedValue,
@@ -34,6 +36,7 @@ const MOCK_PROFILE = {
   bio: 'Pushing limits every day. Train hard, recover harder. 💪⚡',
   location: 'Earth',
   level: 42,
+  badge: 'natural' as const, // Verified natural athlete
   currentXP: 8750,
   nextLevelXP: 10000,
   followers: 15420,
@@ -120,6 +123,7 @@ export default function ProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isFollowing, toggleFollow } = useFollow();
   const [showStats, setShowStats] = useState(false);
+  const [showBadgeInfo, setShowBadgeInfo] = useState(false);
 
   const isOwnProfile = id === 'me' || id === MOCK_PROFILE.id;
 
@@ -129,6 +133,10 @@ export default function ProfileScreen() {
 
   const handleEdit = () => {
     console.log('Edit profile');
+  };
+
+  const handleBadgePress = () => {
+    setShowBadgeInfo(true);
   };
 
   const handlePowerUp = () => {
@@ -150,9 +158,11 @@ export default function ProfileScreen() {
           level={MOCK_PROFILE.level}
           bio={MOCK_PROFILE.bio}
           location={MOCK_PROFILE.location}
+          badge={MOCK_PROFILE.badge}
           onBack={handleBack}
           onEdit={handleEdit}
           isOwnProfile={isOwnProfile}
+          onBadgePress={handleBadgePress}
         />
 
         {/* Stats Row */}
@@ -199,6 +209,13 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Report Button - Only for other users' profiles */}
+        {!isOwnProfile && (
+          <View style={styles.reportButtonContainer}>
+            <ReportButton username={MOCK_PROFILE.username} userId={MOCK_PROFILE.id} />
+          </View>
+        )}
+
         {/* Achievements */}
         <AchievementScroll
           achievements={MOCK_ACHIEVEMENTS}
@@ -240,6 +257,9 @@ export default function ProfileScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Badge Info Modal */}
+      <BadgeInfoModal visible={showBadgeInfo} onClose={() => setShowBadgeInfo(false)} />
     </SafeAreaView>
   );
 }
@@ -329,6 +349,10 @@ const styles = StyleSheet.create({
   },
   followButtonContainer: {
     flex: 1,
+  },
+  reportButtonContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   actionButtonGradient: {
     paddingVertical: 16,

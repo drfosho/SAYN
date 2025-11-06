@@ -14,6 +14,7 @@ const MOCK_POSTS: Post[] = [
     avatarUrl: 'https://i.pravatar.cc/150?img=12',
     content: 'Just hit a new PR on deadlifts! 500lbs feels like unlocking a new transformation. Who else is pushing their limits today? 💪⚡',
     powerLevel: 9001,
+    badge: 'natural', // Verified natural athlete
   },
   {
     id: '2',
@@ -22,6 +23,7 @@ const MOCK_POSTS: Post[] = [
     avatarUrl: 'https://i.pravatar.cc/150?img=33',
     content: 'Finished my morning routine: 100 push-ups, 100 sit-ups, 100 squats, and a 10km run. The prince of all workouts never skips a day!',
     powerLevel: 8500,
+    badge: 'enhanced', // Transparent about enhancement use
   },
   {
     id: '3',
@@ -30,6 +32,7 @@ const MOCK_POSTS: Post[] = [
     avatarUrl: 'https://i.pravatar.cc/150?img=45',
     content: 'New workout tracking tech just dropped! Built an AI that analyzes your power level based on form and intensity. Beta testers wanted! 🚀',
     powerLevel: 7200,
+    // No badge - hasn't verified yet
   },
 ];
 

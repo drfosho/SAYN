@@ -3,7 +3,10 @@ import { StyleSheet, View, Text, Image, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PowerRing } from './PowerRing';
 import { RankBadge } from './RankBadge';
+import { BadgeDisplay } from './badges/BadgeDisplay';
+import { VerifiedCoachBadge } from './badges/VerifiedCoachBadge';
 import { getRankFromLevel } from '@/utils/getRankFromLevel';
+import { BadgeType } from '@/constants/badges';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,9 +21,13 @@ interface ProfileHeaderProps {
   level: number;
   bio?: string;
   location?: string;
+  badge?: BadgeType;
+  isVerifiedCoach?: boolean;
   onBack?: () => void;
   onEdit?: () => void;
   isOwnProfile?: boolean;
+  onBadgePress?: () => void;
+  onCoachBadgePress?: () => void;
 }
 
 /**
@@ -33,9 +40,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   level,
   bio,
   location,
+  badge,
+  isVerifiedCoach = false,
   onBack,
   onEdit,
   isOwnProfile = false,
+  onBadgePress,
+  onCoachBadgePress,
 }) => {
   const particleOpacity = useSharedValue(0.3);
   const userRank = getRankFromLevel(level);
@@ -141,7 +152,24 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
         {/* User info */}
         <View style={styles.userInfo}>
-          <Text style={styles.username}>{username}</Text>
+          <View style={styles.usernameRow}>
+            <Text style={styles.username}>{username}</Text>
+            {/* Verification badge */}
+            {badge && (
+              <BadgeDisplay
+                badgeType={badge}
+                size="medium"
+                onPress={onBadgePress}
+              />
+            )}
+            {/* Verified Coach badge */}
+            {isVerifiedCoach && (
+              <VerifiedCoachBadge
+                size="medium"
+                onPress={onCoachBadgePress}
+              />
+            )}
+          </View>
           <View style={styles.rankContainer}>
             <RankBadge rank={userRank} size="medium" animate={true} />
           </View>
@@ -268,6 +296,12 @@ const styles = StyleSheet.create({
   userInfo: {
     alignItems: 'center',
   },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
   username: {
     fontSize: 28,
     fontWeight: '900',
@@ -277,7 +311,6 @@ const styles = StyleSheet.create({
     textShadowColor: '#000000',
     textShadowOffset: { width: 3, height: 3 },
     textShadowRadius: 0,
-    marginBottom: 12,
   },
   rankContainer: {
     marginBottom: 8,

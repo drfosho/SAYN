@@ -15,8 +15,10 @@ import { RankBadge } from './RankBadge';
 import { ElectricBurst } from './ElectricBurst';
 import { ScanLines } from './ScanLines';
 import { PowerUpAnimation } from './PowerUpAnimation';
+import { BadgeDisplay } from './badges/BadgeDisplay';
 import { usePowerUp } from '@/hooks/usePowerUp';
 import { getRankFromLevel } from '@/utils/getRankFromLevel';
+import { BadgeType } from '@/constants/badges';
 
 export interface Post {
   id: string;
@@ -25,6 +27,7 @@ export interface Post {
   avatarUrl: string;
   content: string;
   powerLevel: number;
+  badge?: BadgeType;
 }
 
 interface PostCardProps {
@@ -191,7 +194,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
           </View>
 
           <View style={styles.userInfo}>
-            <Text style={styles.username}>{post.username}</Text>
+            <View style={styles.usernameRow}>
+              <Text style={styles.username}>{post.username}</Text>
+              {/* Verification badge (Natural/Enhanced) */}
+              {post.badge && (
+                <BadgeDisplay badgeType={post.badge} size="small" />
+              )}
+            </View>
             {/* Rank badge */}
             <RankBadge rank={userRank} size="small" animate={false} />
           </View>
@@ -335,6 +344,11 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     flex: 1,
+    gap: 8,
+  },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   username: {
