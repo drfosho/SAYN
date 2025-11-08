@@ -13,6 +13,7 @@ import Animated, {
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 // Prevent auto-hiding of splash screen
 SplashScreen.preventAutoHideAsync();
@@ -77,22 +78,38 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={SAYNTheme}>
-      <View style={styles.container}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="light" />
+    <AuthProvider>
+      <ThemeProvider value={SAYNTheme}>
+        <View style={styles.container}>
+          <Stack>
+            {/* Auth Screens */}
+            <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
 
-        {/* Loading Screen Overlay */}
-        {showLoading && (
-          <Animated.View style={[styles.loadingContainer, loadingAnimatedStyle]}>
-            <LoadingScreen onReady={handleLoadingComplete} />
-          </Animated.View>
-        )}
-      </View>
-    </ThemeProvider>
+            {/* Onboarding Screens */}
+            <Stack.Screen name="onboarding/profile-setup" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding/avatar-goals" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding/choose-path" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding/welcome-complete" options={{ headerShown: false }} />
+
+            {/* Main App */}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="light" />
+
+          {/* Loading Screen Overlay */}
+          {showLoading && (
+            <Animated.View style={[styles.loadingContainer, loadingAnimatedStyle]}>
+              <LoadingScreen onReady={handleLoadingComplete} />
+            </Animated.View>
+          )}
+        </View>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

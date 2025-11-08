@@ -135,6 +135,10 @@ export default function ProfileScreen() {
     console.log('Edit profile');
   };
 
+  const handleSettings = () => {
+    router.push('/settings');
+  };
+
   const handleBadgePress = () => {
     setShowBadgeInfo(true);
   };
@@ -161,6 +165,7 @@ export default function ProfileScreen() {
           badge={MOCK_PROFILE.badge}
           onBack={handleBack}
           onEdit={handleEdit}
+          onSettings={handleSettings}
           isOwnProfile={isOwnProfile}
           onBadgePress={handleBadgePress}
         />

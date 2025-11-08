@@ -25,6 +25,7 @@ interface ProfileHeaderProps {
   isVerifiedCoach?: boolean;
   onBack?: () => void;
   onEdit?: () => void;
+  onSettings?: () => void;
   isOwnProfile?: boolean;
   onBadgePress?: () => void;
   onCoachBadgePress?: () => void;
@@ -44,6 +45,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   isVerifiedCoach = false,
   onBack,
   onEdit,
+  onSettings,
   isOwnProfile = false,
   onBadgePress,
   onCoachBadgePress,
@@ -106,8 +108,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </Pressable>
           )}
 
-          {isOwnProfile && onEdit && (
-            <Pressable onPress={onEdit} style={styles.controlButton}>
+          {isOwnProfile && onSettings && (
+            <Pressable onPress={onSettings} style={styles.controlButton}>
               <View style={styles.controlButtonSolid}>
                 <Text style={styles.controlButtonText}>⚙️</Text>
               </View>
