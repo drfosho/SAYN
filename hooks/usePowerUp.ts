@@ -1,28 +1,31 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '@/contexts/AuthContext';
+import { togglePowerUp as apiTogglePowerUp } from '@/lib/api/powerups';
 
 interface PowerUpData {
   count: number;
-  poweredUpBy: Set<string>;
+  isPoweredUp: boolean;
 }
 
 type PowerUpState = Map<string, PowerUpData>;
 
-const CURRENT_USER_ID = 'me';
-
-// Mock initial power up data
-const initialPowerUps = new Map<string, PowerUpData>([
-  ['1', { count: 9001, poweredUpBy: new Set(['user2', 'user3', 'user5']) }],
-  ['2', { count: 8500, poweredUpBy: new Set(['user3', 'user4']) }],
-  ['3', { count: 7200, poweredUpBy: new Set(['user2']) }],
-]);
-
 /**
- * Hook for managing Power Up state and interactions
+ * Hook for managing Power Up state and interactions with real database
  * Includes haptic feedback and toggle on/off functionality
  */
 export const usePowerUp = () => {
-  const [powerUps, setPowerUps] = useState<PowerUpState>(initialPowerUps);
+  const { user } = useAuth();
+  const [powerUps, setPowerUps] = useState<PowerUpState>(new Map());
+
+  // Initialize power up data for a post (called from feed)
+  const initializePowerUp = useCallback((postId: string, count: number, isPoweredUp: boolean) => {
+    setPowerUps((prev) => {
+      const newState = new Map(prev);
+      newState.set(postId, { count, isPoweredUp });
+      return newState;
+    });
+  }, []);
 
   const getPowerUpCount = useCallback(
     (postId: string): number => {
@@ -32,98 +35,89 @@ export const usePowerUp = () => {
   );
 
   const isPoweredUpByUser = useCallback(
-    (postId: string, userId: string = CURRENT_USER_ID): boolean => {
-      return powerUps.get(postId)?.poweredUpBy.has(userId) || false;
+    (postId: string): boolean => {
+      return powerUps.get(postId)?.isPoweredUp || false;
     },
     [powerUps]
-  );
-
-  const getPoweredUpByList = useCallback(
-    (postId: string): string[] => {
-      const data = powerUps.get(postId);
-      return data ? Array.from(data.poweredUpBy) : [];
-    },
-    [powerUps]
-  );
-
-  const powerUpPost = useCallback(
-    async (postId: string, userId: string = CURRENT_USER_ID) => {
-      // Trigger haptic feedback
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (error) {
-        // Haptics not available on this platform
-        console.log('Haptics not available');
-      }
-
-      setPowerUps((prev) => {
-        const newState = new Map(prev);
-        const existing = newState.get(postId) || { count: 0, poweredUpBy: new Set<string>() };
-
-        if (!existing.poweredUpBy.has(userId)) {
-          const newPoweredUpBy = new Set(existing.poweredUpBy);
-          newPoweredUpBy.add(userId);
-
-          newState.set(postId, {
-            count: existing.count + 1,
-            poweredUpBy: newPoweredUpBy,
-          });
-        }
-
-        return newState;
-      });
-    },
-    []
-  );
-
-  const unpowerUpPost = useCallback(
-    async (postId: string, userId: string = CURRENT_USER_ID) => {
-      // Trigger light haptic feedback
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } catch (error) {
-        console.log('Haptics not available');
-      }
-
-      setPowerUps((prev) => {
-        const newState = new Map(prev);
-        const existing = newState.get(postId);
-
-        if (existing && existing.poweredUpBy.has(userId)) {
-          const newPoweredUpBy = new Set(existing.poweredUpBy);
-          newPoweredUpBy.delete(userId);
-
-          newState.set(postId, {
-            count: Math.max(0, existing.count - 1),
-            poweredUpBy: newPoweredUpBy,
-          });
-        }
-
-        return newState;
-      });
-    },
-    []
   );
 
   const togglePowerUp = useCallback(
-    async (postId: string, userId: string = CURRENT_USER_ID) => {
-      if (isPoweredUpByUser(postId, userId)) {
-        await unpowerUpPost(postId, userId);
-        return false; // Unpowered up
-      } else {
-        await powerUpPost(postId, userId);
-        return true; // Powered up
+    async (postId: string): Promise<boolean> => {
+      if (!user) {
+        console.log('❌ No user logged in, cannot power up');
+        return false;
       }
+
+      const currentState = powerUps.get(postId);
+      const wasPoweredUp = currentState?.isPoweredUp || false;
+
+      // Optimistic update
+      setPowerUps((prev) => {
+        const newState = new Map(prev);
+        const existing = newState.get(postId) || { count: 0, isPoweredUp: false };
+
+        newState.set(postId, {
+          count: wasPoweredUp ? existing.count - 1 : existing.count + 1,
+          isPoweredUp: !wasPoweredUp,
+        });
+
+        return newState;
+      });
+
+      // Trigger haptic feedback
+      try {
+        await Haptics.impactAsync(
+          wasPoweredUp
+            ? Haptics.ImpactFeedbackStyle.Light
+            : Haptics.ImpactFeedbackStyle.Medium
+        );
+      } catch (error) {
+        console.log('Haptics not available');
+      }
+
+      // Call API
+      console.log(`🔄 ${wasPoweredUp ? 'Unpowering' : 'Powering'} post ${postId}...`);
+      const { data, error } = await apiTogglePowerUp(user.id, postId);
+
+      if (error) {
+        console.error('❌ Power up failed:', error);
+        // Revert optimistic update on error
+        setPowerUps((prev) => {
+          const newState = new Map(prev);
+          if (currentState) {
+            newState.set(postId, currentState);
+          }
+          return newState;
+        });
+        return wasPoweredUp;
+      }
+
+      console.log(`✅ Power up ${wasPoweredUp ? 'removed' : 'added'} successfully`);
+
+      // Confirm the state from server (count already updated optimistically)
+      if (data) {
+        setPowerUps((prev) => {
+          const newState = new Map(prev);
+          const existing = newState.get(postId);
+          if (existing) {
+            newState.set(postId, {
+              count: existing.count, // Keep optimistic count
+              isPoweredUp: data.isPoweredUp, // Use server confirmation
+            });
+          }
+          return newState;
+        });
+      }
+
+      return data?.isPoweredUp || false;
     },
-    [isPoweredUpByUser, powerUpPost, unpowerUpPost]
+    [user, powerUps]
   );
 
   return {
+    initializePowerUp,
     getPowerUpCount,
     isPoweredUpByUser,
-    getPoweredUpByList,
-    powerUpPost,
-    unpowerUpPost,
     togglePowerUp,
   };
 };

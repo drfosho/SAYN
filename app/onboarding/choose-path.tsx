@@ -11,8 +11,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { createUserProfile } from '@/lib/supabase-auth';
-import { useAuth } from '@/hooks/useAuth';
+import { createUserProfile, getCurrentUser } from '@/lib/supabase-auth';
+import { uploadAvatar } from '@/lib/api/storage';
+import { compressAvatar } from '@/utils/imageCompression';
 
 type AthleteType = 'natural' | 'enhanced' | 'prefer_not_to_say';
 
@@ -42,20 +43,78 @@ const ATHLETE_TYPES = [
 
 export default function ChoosePathScreen() {
   const params = useLocalSearchParams();
-  const { user } = useAuth();
   const [selectedType, setSelectedType] = useState<AthleteType | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleComplete = async () => {
-    if (!selectedType || !user) return;
+    if (!selectedType) {
+      Alert.alert('Error', 'Please select an athlete type');
+      return;
+    }
 
     setLoading(true);
 
     try {
+      // Get current user from Supabase
+      console.log('🔐 Getting current user...');
+      const { user, error: userError } = await getCurrentUser();
+
+      if (userError || !user) {
+        console.error('❌ User not found:', userError);
+        Alert.alert(
+          'Authentication Error',
+          'Could not find your account. Please try logging in again.'
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log('🚀 Starting profile creation...');
+      console.log('User ID:', user.id);
+      console.log('Username:', params.username);
+
+      let avatarUrl = '';
+
+      // Upload avatar if provided
+      if (params.avatarUri && params.avatarUri !== '') {
+        console.log('📸 Uploading avatar...');
+        try {
+          // Compress the image first
+          const compressedUri = await compressAvatar(params.avatarUri as string);
+
+          // Upload to Supabase storage
+          const { data: uploadedUrl, error: uploadError } = await uploadAvatar(
+            user.id,
+            compressedUri
+          );
+
+          if (uploadError) {
+            console.error('Avatar upload error:', uploadError);
+            Alert.alert(
+              'Avatar Upload Failed',
+              'We couldn\'t upload your profile picture, but we\'ll continue with profile creation. You can add it later.',
+              [{ text: 'Continue' }]
+            );
+          } else if (uploadedUrl) {
+            avatarUrl = uploadedUrl;
+            console.log('✅ Avatar uploaded successfully:', avatarUrl);
+          }
+        } catch (uploadError: any) {
+          console.error('Avatar upload exception:', uploadError);
+          Alert.alert(
+            'Avatar Upload Failed',
+            'We couldn\'t upload your profile picture, but we\'ll continue with profile creation.',
+            [{ text: 'Continue' }]
+          );
+        }
+      }
+
       // Parse fitness goals from params
       const fitnessGoals = params.fitnessGoals
         ? JSON.parse(params.fitnessGoals as string)
         : [];
+
+      console.log('💾 Creating profile in database...');
 
       // Create user profile
       const { data, error } = await createUserProfile(user.id, {
@@ -63,21 +122,50 @@ export default function ChoosePathScreen() {
         displayName: params.displayName as string,
         bio: params.bio as string,
         location: params.location as string,
-        avatarUrl: params.avatarUri as string || '',
+        avatarUrl: avatarUrl,
         fitnessGoals,
         experienceLevel: params.experienceLevel as any,
         athleteType: selectedType === 'prefer_not_to_say' ? null : selectedType,
       });
 
       if (error) {
-        Alert.alert('Error', error);
+        console.error('❌ Profile creation error:', error);
+
+        // Check for specific errors
+        if (error.includes('already exists') || error.includes('duplicate')) {
+          Alert.alert(
+            'Username Taken',
+            'This username is already taken. Please go back and choose a different one.'
+          );
+        } else if (error.includes('network') || error.includes('connection')) {
+          Alert.alert(
+            'Connection Error',
+            'Please check your internet connection and try again.'
+          );
+        } else {
+          Alert.alert(
+            'Profile Creation Failed',
+            error || 'Something went wrong. Please try again.'
+          );
+        }
         return;
       }
 
-      // Navigate to welcome complete screen
-      router.replace('/onboarding/welcome-complete');
+      console.log('✅ Profile created successfully!');
+      console.log('Profile data:', data);
+
+      // Small delay to show success state
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Navigate to main app (feed)
+      console.log('📱 Navigating to main app...');
+      router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Something went wrong');
+      console.error('❌ Exception during profile creation:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Something went wrong. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -203,7 +291,10 @@ export default function ChoosePathScreen() {
             style={styles.button}
           >
             {loading ? (
-              <ActivityIndicator color="#ffffff" />
+              <>
+                <ActivityIndicator color="#ffffff" size="small" />
+                <Text style={styles.buttonText}>Creating Profile...</Text>
+              </>
             ) : (
               <>
                 <Text style={styles.buttonText}>Complete Setup</Text>

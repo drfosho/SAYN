@@ -9,17 +9,67 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { checkUsernameAvailability, validateUsername } from '@/lib/supabase-auth';
 
+const US_CITIES = [
+  'New York, NY',
+  'Los Angeles, CA',
+  'Chicago, IL',
+  'Houston, TX',
+  'Phoenix, AZ',
+  'Philadelphia, PA',
+  'San Antonio, TX',
+  'San Diego, CA',
+  'Dallas, TX',
+  'San Jose, CA',
+  'Austin, TX',
+  'Jacksonville, FL',
+  'Fort Worth, TX',
+  'Columbus, OH',
+  'Charlotte, NC',
+  'San Francisco, CA',
+  'Indianapolis, IN',
+  'Seattle, WA',
+  'Denver, CO',
+  'Washington, DC',
+  'Boston, MA',
+  'Nashville, TN',
+  'Detroit, MI',
+  'Las Vegas, NV',
+  'Portland, OR',
+  'Memphis, TN',
+  'Louisville, KY',
+  'Baltimore, MD',
+  'Milwaukee, WI',
+  'Albuquerque, NM',
+  'Tucson, AZ',
+  'Fresno, CA',
+  'Sacramento, CA',
+  'Kansas City, MO',
+  'Atlanta, GA',
+  'Miami, FL',
+  'Oakland, CA',
+  'Raleigh, NC',
+  'Minneapolis, MN',
+  'Tampa, FL',
+  'New Orleans, LA',
+  'Cleveland, OH',
+  'Honolulu, HI',
+  'Prefer not to say',
+];
+
 export default function ProfileSetupScreen() {
+  const params = useLocalSearchParams();
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
@@ -64,10 +114,11 @@ export default function ProfileSetupScreen() {
     router.push({
       pathname: '/onboarding/avatar-goals',
       params: {
+        ...params,
         username,
-        displayName: displayName || username,
+        displayName: displayName || params.fullName || username,
         bio: bio || '',
-        location: location || '',
+        location: location === 'Prefer not to say' ? '' : location,
       },
     });
   };
@@ -100,9 +151,9 @@ export default function ProfileSetupScreen() {
           </View>
 
           {/* Header */}
-          <Text style={styles.title}>Build Your Power Profile</Text>
+          <Text style={styles.title}>Choose Your Username</Text>
           <Text style={styles.subtitle}>
-            Let's set up your identity on SAYN
+            Create a unique username and complete your profile
           </Text>
 
           {/* Username Field */}
@@ -162,12 +213,16 @@ export default function ProfileSetupScreen() {
                 style={styles.input}
                 value={displayName}
                 onChangeText={setDisplayName}
-                placeholder="How should we display your name?"
+                placeholder={params.fullName as string || "Optional - shown on profile"}
                 placeholderTextColor="rgba(255, 255, 255, 0.3)"
                 autoCorrect={false}
               />
             </View>
-            <Text style={styles.hint}>Can be different from your username</Text>
+            <Text style={styles.hint}>
+              {params.fullName
+                ? `Defaults to "${params.fullName}" if left blank`
+                : 'Can be different from your username'}
+            </Text>
           </View>
 
           {/* Bio Field */}
@@ -188,19 +243,29 @@ export default function ProfileSetupScreen() {
             <Text style={styles.charCount}>{bio.length}/150</Text>
           </View>
 
-          {/* Location Field */}
+          {/* Location Dropdown */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Location (Optional)</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                value={location}
-                onChangeText={setLocation}
-                placeholder="City, State or Country"
-                placeholderTextColor="rgba(255, 255, 255, 0.3)"
-                autoCorrect={false}
-              />
-            </View>
+            <Pressable
+              onPress={() => setShowLocationPicker(true)}
+              style={styles.inputWrapper}
+            >
+              <View style={[styles.input, styles.dropdownInput]}>
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    !location && styles.dropdownPlaceholder,
+                  ]}
+                >
+                  {location || 'Select Location'}
+                </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={20}
+                  color="rgba(255, 255, 255, 0.5)"
+                />
+              </View>
+            </Pressable>
           </View>
 
           {/* Continue Button */}
@@ -224,6 +289,61 @@ export default function ProfileSetupScreen() {
             </LinearGradient>
           </Pressable>
         </ScrollView>
+
+        {/* Location Picker Modal */}
+        <Modal
+          visible={showLocationPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowLocationPicker(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Location</Text>
+                <Pressable
+                  onPress={() => setShowLocationPicker(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <Ionicons name="close" size={24} color="#ffffff" />
+                </Pressable>
+              </View>
+
+              <ScrollView style={styles.modalList}>
+                {US_CITIES.map((city, index) => (
+                  <Pressable
+                    key={index}
+                    onPress={() => {
+                      setLocation(city);
+                      setShowLocationPicker(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.cityItem,
+                      location === city && styles.cityItemSelected,
+                      pressed && styles.buttonPressed,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.cityText,
+                        location === city && styles.cityTextSelected,
+                      ]}
+                    >
+                      {city}
+                    </Text>
+                    {location === city && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color="#00e5ff"
+                      />
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </LinearGradient>
     </KeyboardAvoidingView>
   );
@@ -354,5 +474,75 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  dropdownInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  dropdownPlaceholder: {
+    color: 'rgba(255, 255, 255, 0.3)',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#0d1128',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '70%',
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderColor: 'rgba(0, 229, 255, 0.3)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalList: {
+    padding: 16,
+  },
+  cityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  cityItemSelected: {
+    borderColor: '#00e5ff',
+    backgroundColor: 'rgba(0, 229, 255, 0.1)',
+  },
+  cityText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  cityTextSelected: {
+    color: '#ffffff',
+    fontWeight: '600',
   },
 });

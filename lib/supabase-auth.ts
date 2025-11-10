@@ -134,7 +134,7 @@ export async function getCurrentUser() {
 export async function checkUsernameAvailability(username: string): Promise<boolean> {
   try {
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('username')
       .eq('username', username)
       .single();
@@ -168,7 +168,7 @@ export async function checkUsernameAvailability(username: string): Promise<boole
 export async function createUserProfile(userId: string, profileData: ProfileSetupData) {
   try {
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .insert([
         {
           id: userId,
@@ -179,12 +179,13 @@ export async function createUserProfile(userId: string, profileData: ProfileSetu
           avatar_url: profileData.avatarUrl || '',
           fitness_goals: profileData.fitnessGoals || [],
           experience_level: profileData.experienceLevel || 'beginner',
-          athlete_type: profileData.athleteType || null,
+          badge_type: profileData.athleteType === 'natural' ? 'natural' : profileData.athleteType === 'enhanced' ? 'enhanced' : null,
           level: 1,
           xp: 0,
-          total_power_ups: 0,
+          power_points: 0,
           streak_days: 0,
-          badge: null,
+          rank: 'rookie',
+          is_verified_coach: false,
           created_at: new Date().toISOString(),
         },
       ])
@@ -216,7 +217,7 @@ export async function createUserProfile(userId: string, profileData: ProfileSetu
 export async function getUserProfile(userId: string) {
   try {
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
@@ -240,17 +241,20 @@ export async function getUserProfile(userId: string) {
 // Update user profile
 export async function updateUserProfile(userId: string, updates: Partial<ProfileSetupData>) {
   try {
+    const updateData: any = {};
+    if (updates.displayName !== undefined) updateData.display_name = updates.displayName;
+    if (updates.bio !== undefined) updateData.bio = updates.bio;
+    if (updates.location !== undefined) updateData.location = updates.location;
+    if (updates.avatarUrl !== undefined) updateData.avatar_url = updates.avatarUrl;
+    if (updates.fitnessGoals !== undefined) updateData.fitness_goals = updates.fitnessGoals;
+    if (updates.experienceLevel !== undefined) updateData.experience_level = updates.experienceLevel;
+    if (updates.athleteType !== undefined) {
+      updateData.badge_type = updates.athleteType === 'natural' ? 'natural' : updates.athleteType === 'enhanced' ? 'enhanced' : null;
+    }
+
     const { data, error } = await supabase
-      .from('user_profiles')
-      .update({
-        display_name: updates.displayName,
-        bio: updates.bio,
-        location: updates.location,
-        avatar_url: updates.avatarUrl,
-        fitness_goals: updates.fitnessGoals,
-        experience_level: updates.experienceLevel,
-        athlete_type: updates.athleteType,
-      })
+      .from('profiles')
+      .update(updateData)
       .eq('id', userId)
       .select()
       .single();

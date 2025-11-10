@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   Pressable,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +20,10 @@ import { FollowButton } from '@/components/FollowButton';
 import { BadgeInfoModal } from '@/components/badges/BadgeInfoModal';
 import { ReportButton } from '@/components/ReportButton';
 import { useFollow } from '@/hooks/useFollow';
+import { useAuth } from '@/contexts/AuthContext';
+import { getProfile } from '@/lib/api/profiles';
+import { getUserPosts } from '@/lib/api/posts';
+import type { Profile as DBProfile, Post as DBPost } from '@/lib/api/types';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -28,104 +33,80 @@ import Animated, {
 
 const { width } = Dimensions.get('window');
 
-// Mock profile data
-const MOCK_PROFILE = {
-  id: '1',
-  username: 'GokuFitness',
-  avatarUrl: 'https://i.pravatar.cc/150?img=12',
-  bio: 'Pushing limits every day. Train hard, recover harder. 💪⚡',
-  location: 'Earth',
-  level: 42,
-  badge: 'natural' as const, // Verified natural athlete
-  currentXP: 8750,
-  nextLevelXP: 10000,
-  followers: 15420,
-  following: 342,
-  totalPosts: 156,
-  totalPowerUps: 45280,
-  longestStreak: 87,
-  joinDate: new Date('2024-01-15'),
-};
-
-const MOCK_ACHIEVEMENTS: Achievement[] = [
-  {
-    id: '1',
-    name: 'First Post',
-    icon: '🎯',
-    description: 'Posted your first workout',
-    unlockedAt: new Date('2024-01-16'),
-  },
-  {
-    id: '2',
-    name: 'Power Surge',
-    icon: '⚡',
-    description: 'Received 100 power ups',
-    unlockedAt: new Date('2024-02-01'),
-  },
-  {
-    id: '3',
-    name: 'Consistency King',
-    icon: '🔥',
-    description: '30 day posting streak',
-    unlockedAt: new Date('2024-03-15'),
-  },
-  {
-    id: '4',
-    name: 'Community Leader',
-    icon: '👑',
-    description: 'Reached 1000 followers',
-    unlockedAt: new Date('2024-04-20'),
-  },
-];
-
-const MOCK_POSTS: GridPost[] = [
-  {
-    id: '1',
-    imageUrl: 'https://picsum.photos/seed/workout1/400/400',
-    isVerified: true,
-    powerLevel: 1250,
-  },
-  {
-    id: '2',
-    imageUrl: 'https://picsum.photos/seed/workout2/400/400',
-    isVerified: true,
-    powerLevel: 980,
-  },
-  {
-    id: '3',
-    imageUrl: 'https://picsum.photos/seed/workout3/400/400',
-    isVerified: false,
-    powerLevel: 745,
-  },
-  {
-    id: '4',
-    imageUrl: undefined, // Text post
-    isVerified: true,
-    powerLevel: 1100,
-  },
-  {
-    id: '5',
-    imageUrl: 'https://picsum.photos/seed/workout5/400/400',
-    isVerified: true,
-    powerLevel: 1520,
-  },
-  {
-    id: '6',
-    imageUrl: 'https://picsum.photos/seed/workout6/400/400',
-    isVerified: false,
-    powerLevel: 620,
-  },
-];
-
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function ProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user, profile: currentUserProfile } = useAuth();
   const { isFollowing, toggleFollow } = useFollow();
+
+  const [profile, setProfile] = useState<DBProfile | null>(null);
+  const [posts, setPosts] = useState<GridPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [showBadgeInfo, setShowBadgeInfo] = useState(false);
 
-  const isOwnProfile = id === 'me' || id === MOCK_PROFILE.id;
+  const isOwnProfile = id === user?.id || id === currentUserProfile?.id;
+
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!id) return;
+
+      console.log('🔄 Fetching profile data for:', id);
+      setLoading(true);
+
+      try {
+        // Fetch profile
+        const { data: profileData, error: profileError } = await getProfile(id);
+
+        if (profileError) {
+          console.error('❌ Error fetching profile:', profileError);
+          setError(profileError);
+          return;
+        }
+
+        if (!profileData) {
+          console.error('❌ Profile not found');
+          setError('Profile not found');
+          return;
+        }
+
+        console.log('✅ Profile loaded:', profileData.username);
+        setProfile(profileData);
+
+        // Fetch user's posts
+        console.log('🔄 Fetching user posts...');
+        const { data: postsData, error: postsError } = await getUserPosts(id, 20, 0);
+
+        if (postsError) {
+          console.error('❌ Error fetching posts:', postsError);
+        } else {
+          console.log('✅ Posts loaded:', postsData?.length || 0);
+
+          // Map posts to grid format
+          const gridPosts: GridPost[] = (postsData || []).map((post) => ({
+            id: post.id,
+            imageUrl: post.media_url || undefined,
+            isVerified: post.is_verified || false,
+            powerLevel: post.power_count,
+          }));
+
+          setPosts(gridPosts);
+        }
+
+        setError(null);
+      } catch (err: any) {
+        console.error('❌ Exception fetching profile:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [id]);
 
   const handleBack = () => {
     router.back();
@@ -151,18 +132,52 @@ export default function ProfileScreen() {
     console.log('Message user');
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#00e5ff" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error || !profile) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>
+            {error || 'Profile not found'}
+          </Text>
+          <Pressable style={styles.backButton} onPress={handleBack}>
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Calculate XP for next level (simplified formula)
+  const nextLevelXP = profile.level * 1000;
+  const currentXP = profile.xp % nextLevelXP;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <ProfileHeader
-          avatarUrl={MOCK_PROFILE.avatarUrl}
-          username={MOCK_PROFILE.username}
-          level={MOCK_PROFILE.level}
-          bio={MOCK_PROFILE.bio}
-          location={MOCK_PROFILE.location}
-          badge={MOCK_PROFILE.badge}
+          avatarUrl={profile.avatar_url || 'https://via.placeholder.com/150'}
+          username={profile.username}
+          level={profile.level}
+          bio={profile.bio || ''}
+          location={profile.location || ''}
+          badge={profile.badge_type || undefined}
           onBack={handleBack}
           onEdit={handleEdit}
           onSettings={handleSettings}
@@ -172,11 +187,11 @@ export default function ProfileScreen() {
 
         {/* Stats Row */}
         <StatsRow
-          level={MOCK_PROFILE.level}
-          currentXP={MOCK_PROFILE.currentXP}
-          nextLevelXP={MOCK_PROFILE.nextLevelXP}
-          followers={MOCK_PROFILE.followers}
-          following={MOCK_PROFILE.following}
+          level={profile.level}
+          currentXP={currentXP}
+          nextLevelXP={nextLevelXP}
+          followers={0} // TODO: Add follower count from API
+          following={0} // TODO: Add following count from API
           onFollowersPress={() => router.push('/followers')}
           onFollowingPress={() => router.push('/following')}
         />
@@ -217,19 +232,19 @@ export default function ProfileScreen() {
         {/* Report Button - Only for other users' profiles */}
         {!isOwnProfile && (
           <View style={styles.reportButtonContainer}>
-            <ReportButton username={MOCK_PROFILE.username} userId={MOCK_PROFILE.id} />
+            <ReportButton username={profile.username} userId={profile.id} />
           </View>
         )}
 
-        {/* Achievements */}
-        <AchievementScroll
-          achievements={MOCK_ACHIEVEMENTS}
+        {/* Achievements - TODO: Fetch from database when achievements are implemented */}
+        {/* <AchievementScroll
+          achievements={[]}
           onAchievementPress={(achievement) => console.log('Tapped:', achievement.name)}
-        />
+        /> */}
 
         {/* Posts Grid */}
         <PostsGrid
-          posts={MOCK_POSTS}
+          posts={posts}
           onPostPress={(post) => console.log('Tapped post:', post.id)}
         />
 
@@ -245,19 +260,21 @@ export default function ProfileScreen() {
 
           {showStats && (
             <View style={styles.detailedStats}>
-              <StatItem label="Total Posts" value={MOCK_PROFILE.totalPosts.toString()} />
+              <StatItem label="Total Posts" value={posts.length.toString()} />
               <StatItem
-                label="Total Power Ups"
-                value={MOCK_PROFILE.totalPowerUps.toLocaleString()}
+                label="Total Power Points"
+                value={profile.power_points.toLocaleString()}
               />
-              <StatItem label="Longest Streak" value={`${MOCK_PROFILE.longestStreak} days`} />
+              <StatItem label="Current Streak" value={`${profile.streak_days} days`} />
               <StatItem
                 label="Member Since"
-                value={MOCK_PROFILE.joinDate.toLocaleDateString('en-US', {
+                value={new Date(profile.created_at).toLocaleDateString('en-US', {
                   month: 'short',
                   year: 'numeric',
                 })}
               />
+              <StatItem label="Level" value={profile.level.toString()} />
+              <StatItem label="XP" value={profile.xp.toLocaleString()} />
             </View>
           )}
         </View>
@@ -336,6 +353,43 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 16,
+    marginTop: 16,
+  },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  backButton: {
+    backgroundColor: '#00e5ff',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: '#000000',
+    shadowColor: '#00e5ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  backButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   actionButtons: {
     flexDirection: 'row',

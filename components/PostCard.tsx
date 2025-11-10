@@ -27,6 +27,7 @@ export interface Post {
   avatarUrl: string;
   content: string;
   powerLevel: number;
+  isPoweredUp?: boolean;
   badge?: BadgeType;
 }
 
@@ -38,7 +39,12 @@ interface PostCardProps {
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
-  const { getPowerUpCount, isPoweredUpByUser, togglePowerUp } = usePowerUp();
+  const { initializePowerUp, getPowerUpCount, isPoweredUpByUser, togglePowerUp } = usePowerUp();
+
+  // Initialize power up data from post prop
+  useEffect(() => {
+    initializePowerUp(post.id, post.powerLevel, post.isPoweredUp || false);
+  }, [post.id, post.powerLevel, post.isPoweredUp, initializePowerUp]);
 
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(40);

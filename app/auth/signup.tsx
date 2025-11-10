@@ -17,10 +17,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { signUp, validateEmail, validatePassword } from '@/lib/supabase-auth';
 
 export default function SignUpScreen() {
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setUsername] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -45,10 +45,10 @@ export default function SignUpScreen() {
 
   // Form is valid
   const isFormValid =
+    fullName.trim().length >= 2 &&
     isEmailValid &&
     passwordValidation.isValid &&
     passwordsMatch &&
-    username.trim().length >= 3 &&
     agreedToTerms;
 
   const handleSignUp = async () => {
@@ -57,20 +57,55 @@ export default function SignUpScreen() {
     setLoading(true);
 
     try {
+      console.log('📝 Starting sign up process...');
       const { data, error } = await signUp({
         email,
         password,
-        username: username.trim(),
+        username: email.split('@')[0], // Temporary username from email
       });
 
       if (error) {
+        console.error('❌ Sign up failed:', error);
         Alert.alert('Sign Up Failed', error);
         return;
       }
 
-      // Success - navigate to onboarding
-      router.replace('/onboarding/profile-setup');
+      if (!data?.user) {
+        console.error('❌ No user data returned from sign up');
+        Alert.alert('Sign Up Failed', 'Could not create account. Please try again.');
+        return;
+      }
+
+      console.log('✅ Sign up successful!');
+      console.log('User ID:', data.user.id);
+      console.log('Session:', data.session ? 'Active' : 'No session');
+
+      // Check if email confirmation is required
+      if (!data.session) {
+        console.log('⚠️ Email confirmation may be required');
+        Alert.alert(
+          'Check Your Email',
+          'Please check your email to confirm your account, then log in.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/auth/login'),
+            },
+          ]
+        );
+        return;
+      }
+
+      // Success - navigate to onboarding with full name
+      console.log('📱 Navigating to profile setup...');
+      router.replace({
+        pathname: '/onboarding/profile-setup',
+        params: {
+          fullName: fullName.trim(),
+        },
+      });
     } catch (error: any) {
+      console.error('❌ Exception during sign up:', error);
       Alert.alert('Error', error.message || 'Something went wrong');
     } finally {
       setLoading(false);
@@ -104,23 +139,23 @@ export default function SignUpScreen() {
             Join the revolution. Start your journey.
           </Text>
 
-          {/* Username Field */}
+          {/* Full Name Field */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Username</Text>
+            <Text style={styles.label}>Full Name</Text>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Choose your username"
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="John Doe"
                 placeholderTextColor="rgba(255, 255, 255, 0.3)"
-                autoCapitalize="none"
+                autoCapitalize="words"
                 autoCorrect={false}
               />
             </View>
-            {username.length > 0 && username.length < 3 && (
+            {fullName.length > 0 && fullName.trim().length < 2 && (
               <Text style={styles.errorText}>
-                Must be at least 3 characters
+                Please enter your full name
               </Text>
             )}
           </View>

@@ -1,96 +1,85 @@
 import { useState, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toggleFollow as apiToggleFollow } from '@/lib/api/follows';
 
 interface FollowState {
-  followers: Set<string>;
-  following: Set<string>;
+  following: Map<string, boolean>; // userId -> isFollowing
 }
 
-const initialState: FollowState = {
-  followers: new Set([
-    'user2', 'user3', 'user4', 'user5', 'user6', 'user7', 'user8', 'user9', 'user10',
-  ]), // Mock followers
-  following: new Set(['user2', 'user3', 'user5']), // Mock following
-};
-
 /**
- * Hook for managing follow/unfollow state
- * Frontend-only with local state (not persisted)
+ * Hook for managing follow/unfollow state with real database
+ * Includes optimistic updates for better UX
  */
 export const useFollow = () => {
-  const [state, setState] = useState<FollowState>(initialState);
+  const { user } = useAuth();
+  const [state, setState] = useState<FollowState>({
+    following: new Map(),
+  });
+
+  // Initialize follow state for a user (called from screens)
+  const initializeFollowState = useCallback((userId: string, isFollowing: boolean) => {
+    setState((prev) => {
+      const newFollowing = new Map(prev.following);
+      newFollowing.set(userId, isFollowing);
+      return { following: newFollowing };
+    });
+  }, []);
 
   const isFollowing = useCallback(
     (userId: string): boolean => {
-      return state.following.has(userId);
+      return state.following.get(userId) || false;
     },
     [state.following]
   );
 
-  const isFollower = useCallback(
-    (userId: string): boolean => {
-      return state.followers.has(userId);
-    },
-    [state.followers]
-  );
-
-  const followUser = useCallback((userId: string) => {
-    setState((prev) => {
-      const newFollowing = new Set(prev.following);
-      newFollowing.add(userId);
-      return {
-        ...prev,
-        following: newFollowing,
-      };
-    });
-  }, []);
-
-  const unfollowUser = useCallback((userId: string) => {
-    setState((prev) => {
-      const newFollowing = new Set(prev.following);
-      newFollowing.delete(userId);
-      return {
-        ...prev,
-        following: newFollowing,
-      };
-    });
-  }, []);
-
   const toggleFollow = useCallback(
-    (userId: string) => {
-      if (isFollowing(userId)) {
-        unfollowUser(userId);
-      } else {
-        followUser(userId);
+    async (userId: string) => {
+      if (!user) {
+        console.log('❌ No user logged in, cannot follow');
+        return;
+      }
+
+      const wasFollowing = state.following.get(userId) || false;
+
+      // Optimistic update
+      setState((prev) => {
+        const newFollowing = new Map(prev.following);
+        newFollowing.set(userId, !wasFollowing);
+        return { following: newFollowing };
+      });
+
+      // Call API
+      console.log(`🔄 ${wasFollowing ? 'Unfollowing' : 'Following'} user ${userId}...`);
+      const { data, error } = await apiToggleFollow(user.id, userId);
+
+      if (error) {
+        console.error('❌ Follow toggle failed:', error);
+        // Revert optimistic update on error
+        setState((prev) => {
+          const newFollowing = new Map(prev.following);
+          newFollowing.set(userId, wasFollowing);
+          return { following: newFollowing };
+        });
+        return;
+      }
+
+      console.log(`✅ Follow ${wasFollowing ? 'removed' : 'added'} successfully`);
+
+      // Confirm state from server
+      if (data) {
+        setState((prev) => {
+          const newFollowing = new Map(prev.following);
+          newFollowing.set(userId, data.isFollowing);
+          return { following: newFollowing };
+        });
       }
     },
-    [isFollowing, followUser, unfollowUser]
+    [user, state.following]
   );
 
-  const getFollowersList = useCallback((): string[] => {
-    return Array.from(state.followers);
-  }, [state.followers]);
-
-  const getFollowingList = useCallback((): string[] => {
-    return Array.from(state.following);
-  }, [state.following]);
-
-  const getFollowersCount = useCallback((): number => {
-    return state.followers.size;
-  }, [state.followers]);
-
-  const getFollowingCount = useCallback((): number => {
-    return state.following.size;
-  }, [state.following]);
-
   return {
+    initializeFollowState,
     isFollowing,
-    isFollower,
-    followUser,
-    unfollowUser,
     toggleFollow,
-    getFollowersList,
-    getFollowingList,
-    getFollowersCount,
-    getFollowingCount,
   };
 };

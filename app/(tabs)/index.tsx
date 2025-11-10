@@ -1,42 +1,78 @@
-import React from 'react';
-import { StyleSheet, View, Text, FlatList, SafeAreaView, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, FlatList, SafeAreaView, Pressable, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { PostCard, Post } from '@/components/PostCard';
 import { StatusBar } from 'expo-status-bar';
-
-// Mock data for the feed
-const MOCK_POSTS: Post[] = [
-  {
-    id: '1',
-    username: 'GokuFitness',
-    level: 95, // God Tier
-    avatarUrl: 'https://i.pravatar.cc/150?img=12',
-    content: 'Just hit a new PR on deadlifts! 500lbs feels like unlocking a new transformation. Who else is pushing their limits today? 💪⚡',
-    powerLevel: 9001,
-    badge: 'natural', // Verified natural athlete
-  },
-  {
-    id: '2',
-    username: 'VegetaPride',
-    level: 75, // Superhuman
-    avatarUrl: 'https://i.pravatar.cc/150?img=33',
-    content: 'Finished my morning routine: 100 push-ups, 100 sit-ups, 100 squats, and a 10km run. The prince of all workouts never skips a day!',
-    powerLevel: 8500,
-    badge: 'enhanced', // Transparent about enhancement use
-  },
-  {
-    id: '3',
-    username: 'BulmaTech',
-    level: 45, // Titan
-    avatarUrl: 'https://i.pravatar.cc/150?img=45',
-    content: 'New workout tracking tech just dropped! Built an AI that analyzes your power level based on form and intensity. Beta testers wanted! 🚀',
-    powerLevel: 7200,
-    // No badge - hasn't verified yet
-  },
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { getPosts } from '@/lib/api/posts';
+import type { Post as DBPost } from '@/lib/api/types';
 
 export default function SAYNFeedScreen() {
+  const { user, profile, loading: authLoading } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch posts from database
+  const fetchPosts = async (isRefreshing = false) => {
+    if (!user) return;
+
+    console.log('🔄 Fetching posts from database...');
+    console.log('Current User ID:', user.id);
+
+    if (!isRefreshing) {
+      setLoading(true);
+    }
+
+    try {
+      const { data, error: postsError } = await getPosts(20, 0, user.id);
+
+      if (postsError) {
+        console.error('❌ Error fetching posts:', postsError);
+        setError(postsError);
+        return;
+      }
+
+      console.log('✅ Fetched posts:', data?.length || 0);
+
+      // Map database posts to PostCard format
+      const mappedPosts: Post[] = (data || []).map((dbPost) => ({
+        id: dbPost.id,
+        username: dbPost.profiles?.username || 'Unknown User',
+        level: dbPost.profiles?.level || 1,
+        avatarUrl: dbPost.profiles?.avatar_url || 'https://via.placeholder.com/150',
+        content: dbPost.caption || '',
+        powerLevel: dbPost.power_count,
+        isPoweredUp: dbPost.user_has_powered || false,
+        badge: dbPost.profiles?.badge_type || undefined,
+      }));
+
+      setPosts(mappedPosts);
+      setError(null);
+    } catch (err: any) {
+      console.error('❌ Exception fetching posts:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Load posts on mount and when user changes
+  useEffect(() => {
+    if (user && !authLoading) {
+      fetchPosts();
+    }
+  }, [user, authLoading]);
+
+  // Handle pull to refresh
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPosts(true);
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.logoContainer}>
@@ -55,15 +91,30 @@ export default function SAYNFeedScreen() {
       </View>
       <Pressable
         style={styles.profileButton}
-        onPress={() => router.push('/profile/me')}
+        onPress={() => {
+          if (profile?.id) {
+            router.push(`/profile/${profile.id}`);
+          }
+        }}
       >
-        <View style={styles.profileIcon}>
-          <Text style={styles.profileEmoji}>👤</Text>
-        </View>
-        {/* Power level indicator badge */}
-        <View style={styles.powerBadge}>
-          <Text style={styles.powerBadgeText}>99</Text>
-        </View>
+        {profile?.avatar_url ? (
+          <Image
+            source={{ uri: profile.avatar_url }}
+            style={styles.profileImage}
+          />
+        ) : (
+          <View style={styles.profileIcon}>
+            <Text style={styles.profileEmoji}>
+              {profile?.username?.charAt(0)?.toUpperCase() || '👤'}
+            </Text>
+          </View>
+        )}
+        {/* User level badge */}
+        {profile?.level && (
+          <View style={styles.powerBadge}>
+            <Text style={styles.powerBadgeText}>{profile.level}</Text>
+          </View>
+        )}
       </Pressable>
     </View>
   );
@@ -71,6 +122,95 @@ export default function SAYNFeedScreen() {
   const renderPost = ({ item, index }: { item: Post; index: number }) => (
     <PostCard post={item} index={index} />
   );
+
+  // Loading state
+  if (authLoading || loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LinearGradient
+          colors={['#050814', '#050814']}
+          style={styles.background}
+        >
+          {renderHeader()}
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color="#00e5ff" />
+            <Text style={styles.loadingText}>Loading feed...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  // Not authenticated
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LinearGradient
+          colors={['#050814', '#050814']}
+          style={styles.background}
+        >
+          {renderHeader()}
+          <View style={styles.centerContainer}>
+            <Text style={styles.emptyText}>Please log in to see posts</Text>
+            <Pressable
+              style={styles.loginButton}
+              onPress={() => router.push('/auth/login')}
+            >
+              <Text style={styles.loginButtonText}>Log In</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error && posts.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LinearGradient
+          colors={['#050814', '#050814']}
+          style={styles.background}
+        >
+          {renderHeader()}
+          <View style={styles.centerContainer}>
+            <Text style={styles.errorText}>Error loading posts</Text>
+            <Text style={styles.errorSubtext}>{error}</Text>
+            <Pressable style={styles.retryButton} onPress={() => fetchPosts()}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  // Empty state
+  if (posts.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#050814', '#050814']}
+          style={styles.background}
+        >
+          {renderHeader()}
+          <View style={styles.centerContainer}>
+            <Text style={styles.emptyText}>No posts yet</Text>
+            <Text style={styles.emptySubtext}>
+              Be the first to share your fitness journey!
+            </Text>
+            <Pressable
+              style={styles.createButton}
+              onPress={() => router.push('/upload')}
+            >
+              <Text style={styles.createButtonText}>Create Post</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -81,11 +221,19 @@ export default function SAYNFeedScreen() {
       >
         {renderHeader()}
         <FlatList
-          data={MOCK_POSTS}
+          data={posts}
           renderItem={renderPost}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#00e5ff"
+              colors={['#00e5ff']}
+            />
+          }
         />
       </LinearGradient>
     </SafeAreaView>
@@ -194,5 +342,106 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: 8,
     paddingBottom: 100,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 16,
+    marginTop: 16,
+  },
+  emptyText: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 14,
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 14,
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  loginButton: {
+    backgroundColor: '#00e5ff',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: '#000000',
+    shadowColor: '#00e5ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  loginButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  retryButton: {
+    backgroundColor: '#00e5ff',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: '#000000',
+    shadowColor: '#00e5ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  retryButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  createButton: {
+    backgroundColor: '#00e5ff',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: '#000000',
+    shadowColor: '#00e5ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  createButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  profileImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
 });
