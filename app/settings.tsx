@@ -32,8 +32,19 @@ export default function SettingsScreen() {
           text: 'Log Out',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
-            router.replace('/auth/welcome');
+            try {
+              console.log('🚪 User initiated logout from settings');
+              await signOut();
+              console.log('✅ Logout successful - Redirecting to welcome screen');
+              router.replace('/auth/welcome');
+              // Show success message after navigation
+              setTimeout(() => {
+                Alert.alert('Logged Out', 'You have been logged out successfully');
+              }, 500);
+            } catch (error: any) {
+              console.error('❌ Logout error:', error);
+              Alert.alert('Error', 'Failed to log out. Please try again.');
+            }
           },
         },
       ]

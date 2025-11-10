@@ -66,14 +66,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state
   useEffect(() => {
+    console.log('🔧 AuthContext: Initializing...');
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      console.log('🔑 AuthContext: Session check complete');
 
       if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false));
+        console.log('✅ AuthContext: Found existing session for user:', session.user.id);
+        setSession(session);
+        setUser(session.user);
+        fetchProfile(session.user.id).finally(() => {
+          console.log('✅ AuthContext: Profile loaded, ready');
+          setLoading(false);
+        });
       } else {
+        console.log('❌ AuthContext: No existing session found');
+        setSession(null);
+        setUser(null);
         setLoading(false);
       }
     });
@@ -81,7 +91,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔔 AuthContext: Auth state changed -', event);
+
+      if (event === 'SIGNED_IN') {
+        console.log('✅ AuthContext: User signed in:', session?.user?.id);
+      } else if (event === 'SIGNED_OUT') {
+        console.log('👋 AuthContext: User signed out');
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('🔄 AuthContext: Token refreshed');
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
 
@@ -92,15 +112,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('🔧 AuthContext: Cleanup - Unsubscribing from auth changes');
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Sign out
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setProfile(null);
+    console.log('🚪 AuthContext: Signing out...');
+    try {
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      console.log('✅ AuthContext: Sign out successful');
+    } catch (error: any) {
+      console.error('❌ AuthContext: Sign out error:', error.message);
+      throw error;
+    }
   };
 
   const value = {
