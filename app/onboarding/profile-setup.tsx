@@ -321,6 +321,7 @@ export default function ProfileSetupScreen() {
             </LinearGradient>
           </Pressable>
         </ScrollView>
+        </TouchableWithoutFeedback>
 
         {/* Location Picker Modal */}
         <Modal
