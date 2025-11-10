@@ -38,6 +38,23 @@ export default function SignUpScreen() {
   const passwordValidation = validatePassword(password);
   const showPasswordRequirements = passwordTouched && password.length > 0;
 
+  // Password strength calculation
+  const getPasswordStrength = () => {
+    if (password.length === 0) return { label: '', color: '', width: '0%' };
+
+    let strength = 0;
+    if (passwordValidation.requirements.minLength) strength++;
+    if (passwordValidation.requirements.hasUppercase) strength++;
+    if (passwordValidation.requirements.hasNumber) strength++;
+    if (password.length >= 12) strength++; // Bonus for longer passwords
+
+    if (strength <= 1) return { label: 'Weak', color: '#ff4444', width: '33%' };
+    if (strength === 2) return { label: 'Medium', color: '#ffa500', width: '66%' };
+    return { label: 'Strong', color: '#00ff88', width: '100%' };
+  };
+
+  const passwordStrength = getPasswordStrength();
+
   // Confirm password validation
   const passwordsMatch = password === confirmPassword;
   const showPasswordMismatch =
@@ -165,7 +182,7 @@ export default function SignUpScreen() {
             <Text style={styles.label}>Email</Text>
             <View style={styles.inputWrapper}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, (email.length > 0 || isEmailValid) && styles.inputWithIcon]}
                 value={email}
                 onChangeText={setEmail}
                 onBlur={() => setEmailTouched(true)}
@@ -174,7 +191,21 @@ export default function SignUpScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                returnKeyType="next"
               />
+              {email.length > 0 && !isEmailValid && (
+                <Pressable
+                  onPress={() => setEmail('')}
+                  style={styles.iconButton}
+                >
+                  <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.5)" />
+                </Pressable>
+              )}
+              {isEmailValid && email.length > 0 && (
+                <View style={styles.iconButton}>
+                  <Ionicons name="checkmark-circle" size={20} color="#00ff88" />
+                </View>
+              )}
             </View>
             {showEmailError && (
               <Text style={styles.errorText}>
@@ -209,6 +240,26 @@ export default function SignUpScreen() {
                 />
               </Pressable>
             </View>
+
+            {/* Password Strength Indicator */}
+            {password.length > 0 && (
+              <View style={styles.strengthContainer}>
+                <View style={styles.strengthBar}>
+                  <View
+                    style={[
+                      styles.strengthFill,
+                      {
+                        width: passwordStrength.width,
+                        backgroundColor: passwordStrength.color,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.strengthLabel, { color: passwordStrength.color }]}>
+                  {passwordStrength.label}
+                </Text>
+              </View>
+            )}
 
             {/* Password Requirements */}
             {showPasswordRequirements && (
@@ -398,6 +449,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 6,
     marginLeft: 4,
+  },
+  strengthContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 8,
+  },
+  strengthBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  strengthFill: {
+    height: '100%',
+    borderRadius: 3,
+    transition: 'width 0.3s ease',
+  },
+  strengthLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    minWidth: 60,
+    textAlign: 'right',
   },
   requirementsContainer: {
     marginTop: 12,

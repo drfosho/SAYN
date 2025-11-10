@@ -10,10 +10,13 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { checkUsernameAvailability, validateUsername } from '@/lib/supabase-auth';
 
 const US_CITIES = [
@@ -107,8 +110,15 @@ export default function ProfileSetupScreen() {
   const isFormValid =
     usernameValidation.isValid && usernameAvailable === true;
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!isFormValid) return;
+
+    // Haptic feedback on button press
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (error) {
+      // Haptics not available
+    }
 
     // Store data in router state to pass to next screen
     router.push({
@@ -132,11 +142,12 @@ export default function ProfileSetupScreen() {
         colors={['#050814', '#0d1128', '#1a1f3a']}
         style={styles.gradient}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           {/* Progress Indicator */}
           <View style={styles.progressContainer}>
             <View style={styles.progressBar}>
@@ -158,20 +169,33 @@ export default function ProfileSetupScreen() {
 
           {/* Username Field */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>
-              Username <Text style={styles.required}>*</Text>
-            </Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>
+                Username <Text style={styles.required}>*</Text>
+              </Text>
+              <Text style={styles.charCount}>{username.length}/20</Text>
+            </View>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={[styles.input, styles.inputWithIcon]}
                 value={username}
-                onChangeText={setUsername}
+                onChangeText={(text) => setUsername(text.toLowerCase().replace(/\s/g, ''))}
                 placeholder="Choose your username"
                 placeholderTextColor="rgba(255, 255, 255, 0.3)"
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoFocus
+                maxLength={20}
+                returnKeyType="next"
               />
+              {username.length > 0 && (
+                <Pressable
+                  onPress={() => setUsername('')}
+                  style={styles.clearButton}
+                >
+                  <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.5)" />
+                </Pressable>
+              )}
               {checkingUsername && (
                 <View style={styles.statusIcon}>
                   <ActivityIndicator size="small" color="#00e5ff" />
@@ -194,14 +218,14 @@ export default function ProfileSetupScreen() {
               <Text style={styles.errorText}>{usernameValidation.error}</Text>
             )}
             {usernameValidation.isValid && usernameAvailable === false && (
-              <Text style={styles.errorText}>Username is already taken</Text>
+              <Text style={styles.errorText}>Username is already taken - try another</Text>
             )}
             {usernameValidation.isValid && usernameAvailable === true && (
-              <Text style={styles.successText}>Username is available!</Text>
+              <Text style={styles.successText}>✓ Username is available!</Text>
             )}
 
             <Text style={styles.hint}>
-              3-20 characters, letters, numbers, and underscores only
+              Lowercase only • No spaces • 3-20 characters
             </Text>
           </View>
 
@@ -227,20 +251,28 @@ export default function ProfileSetupScreen() {
 
           {/* Bio Field */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Bio (Optional)</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>Bio (Optional)</Text>
+              <Text style={styles.charCount}>{bio.length}/150</Text>
+            </View>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 value={bio}
                 onChangeText={(text) => text.length <= 150 && setBio(text)}
-                placeholder="Tell us about yourself..."
+                placeholder="Personal trainer | Powerlifter | Natural athlete 💪"
                 placeholderTextColor="rgba(255, 255, 255, 0.3)"
                 multiline
-                numberOfLines={3}
+                numberOfLines={4}
                 maxLength={150}
+                textAlignVertical="top"
+                returnKeyType="done"
+                blurOnSubmit
               />
             </View>
-            <Text style={styles.charCount}>{bio.length}/150</Text>
+            <Text style={styles.hint}>
+              Tell others about your fitness journey
+            </Text>
           </View>
 
           {/* Location Dropdown */}
@@ -447,8 +479,18 @@ const styles = StyleSheet.create({
   charCount: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 6,
-    textAlign: 'right',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 50,
+    top: 16,
+    padding: 4,
   },
   buttonWrapper: {
     borderRadius: 12,
