@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
 
 const FITNESS_GOALS = [
   { id: 'build_muscle', label: 'Build Muscle', icon: '💪' },
@@ -80,7 +81,14 @@ export default function AvatarGoalsScreen() {
     }
   };
 
-  const toggleGoal = (goalId: string) => {
+  const toggleGoal = async (goalId: string) => {
+    // Haptic feedback
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      // Haptics not available
+    }
+
     if (selectedGoals.includes(goalId)) {
       setSelectedGoals(selectedGoals.filter((id) => id !== goalId));
     } else {
@@ -90,8 +98,25 @@ export default function AvatarGoalsScreen() {
     }
   };
 
-  const handleContinue = () => {
+  const selectExperienceLevel = async (levelId: string) => {
+    // Haptic feedback
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      // Haptics not available
+    }
+    setExperienceLevel(levelId);
+  };
+
+  const handleContinue = async () => {
     if (!isFormValid) return;
+
+    // Haptic feedback on button press
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (error) {
+      // Haptics not available
+    }
 
     router.push({
       pathname: '/onboarding/choose-path',
@@ -230,7 +255,7 @@ export default function AvatarGoalsScreen() {
               return (
                 <Pressable
                   key={level.id}
-                  onPress={() => setExperienceLevel(level.id)}
+                  onPress={() => selectExperienceLevel(level.id)}
                   style={({ pressed }) => [
                     styles.levelCard,
                     isSelected && styles.levelCardSelected,

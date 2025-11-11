@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { createUserProfile, getCurrentUser } from '@/lib/supabase-auth';
 import { uploadAvatar } from '@/lib/api/storage';
 import { compressAvatar } from '@/utils/imageCompression';
@@ -46,10 +47,27 @@ export default function ChoosePathScreen() {
   const [selectedType, setSelectedType] = useState<AthleteType | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const selectAthleteType = async (type: AthleteType) => {
+    // Haptic feedback
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      // Haptics not available
+    }
+    setSelectedType(type);
+  };
+
   const handleComplete = async () => {
     if (!selectedType) {
       Alert.alert('Error', 'Please select an athlete type');
       return;
+    }
+
+    // Haptic feedback on button press
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (error) {
+      // Haptics not available
     }
 
     setLoading(true);
@@ -213,7 +231,7 @@ export default function ChoosePathScreen() {
             return (
               <Pressable
                 key={type.id}
-                onPress={() => setSelectedType(type.id)}
+                onPress={() => selectAthleteType(type.id)}
                 style={({ pressed }) => [
                   styles.card,
                   isSelected && styles.cardSelected,

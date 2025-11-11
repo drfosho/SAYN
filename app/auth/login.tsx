@@ -10,6 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -40,9 +42,9 @@ export default function LoginScreen() {
         return;
       }
 
-      // Success - the AuthContext will handle navigation
-      // Navigate to main app
-      router.replace('/(tabs)');
+      // Success - navigate to index, which will route based on profile existence
+      // Index will check if profile exists and navigate to tabs or onboarding
+      router.replace('/');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Something went wrong');
     } finally {
@@ -59,11 +61,12 @@ export default function LoginScreen() {
         colors={['#050814', '#0d1128', '#1a1f3a']}
         style={styles.gradient}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           {/* Header */}
           <Pressable
             onPress={() => router.back()}
@@ -166,7 +169,8 @@ export default function LoginScreen() {
               <Text style={styles.signUpLink}>Sign Up</Text>
             </Pressable>
           </View>
-        </ScrollView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </LinearGradient>
     </KeyboardAvoidingView>
   );

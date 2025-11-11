@@ -10,6 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -138,11 +140,12 @@ export default function SignUpScreen() {
         colors={['#050814', '#0d1128', '#1a1f3a']}
         style={styles.gradient}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           {/* Header */}
           <Pressable
             onPress={() => router.back()}
@@ -367,7 +370,8 @@ export default function SignUpScreen() {
               <Text style={styles.loginLink}>Log In</Text>
             </Pressable>
           </View>
-        </ScrollView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </LinearGradient>
     </KeyboardAvoidingView>
   );

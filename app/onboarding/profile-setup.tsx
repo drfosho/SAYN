@@ -234,13 +234,23 @@ export default function ProfileSetupScreen() {
             <Text style={styles.label}>Display Name (Optional)</Text>
             <View style={styles.inputWrapper}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, displayName.length > 0 && styles.inputWithIcon]}
                 value={displayName}
                 onChangeText={setDisplayName}
                 placeholder={params.fullName as string || "Optional - shown on profile"}
                 placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                autoCapitalize="words"
                 autoCorrect={false}
+                returnKeyType="next"
               />
+              {displayName.length > 0 && (
+                <Pressable
+                  onPress={() => setDisplayName('')}
+                  style={styles.clearButton}
+                >
+                  <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.5)" />
+                </Pressable>
+              )}
             </View>
             <Text style={styles.hint}>
               {params.fullName
