@@ -25,10 +25,9 @@ export async function uploadImage(
     if (typeof file === 'string') {
       // Check if it's a file URI (React Native)
       if (file.startsWith('file://') || file.startsWith('content://')) {
-        // For React Native file URIs, use fetch to read the file
+        // For React Native file URIs, use fetch to read the file as ArrayBuffer
         const response = await fetch(file);
-        const blob = await response.blob();
-        uploadData = blob;
+        uploadData = await response.arrayBuffer();
       } else if (file.includes('base64,')) {
         // If it's a base64 string, convert it
         const base64Data = file.split('base64,')[1];

@@ -25,6 +25,7 @@ export interface Post {
   user_id: string;
   image_url: string | null;
   caption: string | null;
+  post_type: 'daily_check_in' | 'progress_update' | 'peak_condition' | 'just_sharing' | null;
   verification_status: 'pending' | 'verified' | 'rejected' | null;
   verification_requested: boolean;
   power_count: number;
@@ -78,6 +79,7 @@ export interface PostCreate {
   user_id: string;
   image_url?: string;
   caption?: string;
+  post_type?: 'daily_check_in' | 'progress_update' | 'peak_condition' | 'just_sharing';
   verification_requested?: boolean;
 }
 

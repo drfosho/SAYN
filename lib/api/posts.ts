@@ -306,33 +306,56 @@ export async function getFollowingFeed(
  */
 export async function incrementPowerCount(postId: string): Promise<ApiResponse<boolean>> {
   try {
+    console.log('Incrementing power count for post:', postId);
+
     const { error } = await supabase.rpc('increment_power_count', {
       post_id: postId,
     });
 
     // If RPC function doesn't exist, manually increment
     if (error?.message?.includes('function') && error?.message?.includes('does not exist')) {
-      const { data: post } = await supabase
+      console.log('RPC function not found, using manual increment');
+
+      const { data: post, error: fetchError } = await supabase
         .from('posts')
         .select('power_count')
         .eq('id', postId)
         .single();
 
+      if (fetchError) {
+        console.error('Error fetching post for increment:', fetchError);
+        throw fetchError;
+      }
+
       if (post) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('posts')
           .update({ power_count: post.power_count + 1 })
           .eq('id', postId);
+
+        if (updateError) {
+          console.error('Error updating power count:', updateError);
+          throw updateError;
+        }
       }
 
       return { data: true, error: null };
     }
 
-    if (error) throw error;
+    if (error) {
+      console.error('RPC increment_power_count error:', error);
+      throw error;
+    }
 
     return { data: true, error: null };
   } catch (error: any) {
-    console.error('Increment power count error:', error);
+    console.error('Increment power count error:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      postId: postId
+    });
     return { data: null, error: error.message };
   }
 }

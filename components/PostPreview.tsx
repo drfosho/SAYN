@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -44,6 +45,16 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
   const [requestVerification, setRequestVerification] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
   const postButtonScale = useSharedValue(1);
+  const captionInputRef = useRef<TextInput>(null);
+
+  const handleCaptionChange = (text: string) => {
+    console.log('Caption changed:', text);
+    setCaption(text);
+  };
+
+  const focusInput = () => {
+    captionInputRef.current?.focus();
+  };
 
   const postButtonAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: postButtonScale.value }],
@@ -71,6 +82,7 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <ScrollView
         style={styles.scrollView}
@@ -98,28 +110,41 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
         {/* Caption Input */}
         <View style={styles.inputSection}>
           <Text style={styles.inputLabel}>CAPTION</Text>
-          <View
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={focusInput}
             style={[
               styles.inputContainer,
               isFocused && styles.inputContainerFocused,
             ]}
           >
             <TextInput
+              ref={captionInputRef}
               style={styles.input}
+              value={caption}
+              onChangeText={handleCaptionChange}
               placeholder="Share your progress..."
               placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              value={caption}
-              onChangeText={setCaption}
-              multiline
-              editable={true}
-              autoFocus={true}
+              multiline={true}
+              numberOfLines={5}
               maxLength={500}
+              autoFocus={true}
+              editable={!uploading}
+              selectTextOnFocus={true}
+              returnKeyType="default"
+              blurOnSubmit={false}
               textAlignVertical="top"
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
+              onFocus={() => {
+                console.log('Caption input focused');
+                setIsFocused(true);
+              }}
+              onBlur={() => {
+                console.log('Caption input blurred');
+                setIsFocused(false);
+              }}
             />
-          </View>
-          <Text style={styles.charCount}>{caption.length}/500</Text>
+          </TouchableOpacity>
+          <Text style={styles.charCount}>{caption.length} / 500</Text>
         </View>
 
         {/* Verification Toggle */}
@@ -293,10 +318,13 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   input: {
+    width: '100%',
     fontSize: 16,
     color: '#ffffff',
     fontWeight: '500',
     lineHeight: 24,
+    minHeight: 100,
+    padding: 0,
   },
   charCount: {
     fontSize: 11,

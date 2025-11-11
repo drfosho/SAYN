@@ -5,11 +5,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView } from '@/components/CameraView';
 import { PostPreview } from '@/components/PostPreview';
+import { PostTypeSelector } from '@/components/PostTypeSelector';
 import { ElectricBurst } from '@/components/ElectricBurst';
 import { useCamera, CapturedPhoto } from '@/hooks/useCamera';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadPostImage } from '@/lib/api/storage';
 import { createPost } from '@/lib/api/posts';
+import { PostType, POST_TYPE_CONFIGS } from '@/lib/types/xp';
+import { awardXP, updatePostStreak } from '@/lib/api/xp';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,7 +21,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
-type UploadMode = 'select' | 'camera' | 'preview' | 'success';
+type UploadMode = 'select' | 'camera' | 'postType' | 'preview' | 'success';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -26,10 +29,14 @@ export default function UploadScreen() {
   const { user } = useAuth();
   const [mode, setMode] = useState<UploadMode>('select');
   const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
+  const [postType, setPostType] = useState<PostType | null>(null);
   const [showSuccessBurst, setShowSuccessBurst] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
-  const { pickImageFromLibrary } = useCamera();
+  const [xpGained, setXpGained] = useState(0);
+  const [didLevelUp, setDidLevelUp] = useState(false);
+  const [newLevel, setNewLevel] = useState(0);
+  const { pickImageFromLibrary} = useCamera();
 
   const successOpacity = useSharedValue(0);
 
@@ -45,17 +52,22 @@ export default function UploadScreen() {
     const photo = await pickImageFromLibrary();
     if (photo) {
       setCapturedPhoto(photo);
-      setMode('preview');
+      setMode('postType'); // Go to post type selection first
     }
   };
 
   const handleTextPost = () => {
     setCapturedPhoto(null);
-    setMode('preview');
+    setMode('postType'); // Go to post type selection first
   };
 
   const handlePhotoCapture = (photo: CapturedPhoto) => {
     setCapturedPhoto(photo);
+    setMode('postType'); // Go to post type selection first
+  };
+
+  const handlePostTypeSelect = (selectedType: PostType) => {
+    setPostType(selectedType);
     setMode('preview');
   };
 
@@ -65,12 +77,18 @@ export default function UploadScreen() {
       return;
     }
 
+    if (!postType) {
+      Alert.alert('Error', 'Post type not selected');
+      return;
+    }
+
     if (uploading) {
       return; // Prevent double-submit
     }
 
     console.log('🚀 Starting post upload...');
     console.log('User ID:', user.id);
+    console.log('Post Type:', postType);
     console.log('Caption:', caption);
     console.log('Verification requested:', requestVerification);
     console.log('Has photo:', !!capturedPhoto);
@@ -109,6 +127,7 @@ export default function UploadScreen() {
         user_id: user.id,
         image_url: imageUrl || undefined,
         caption: caption || undefined,
+        post_type: postType,
         verification_requested: requestVerification,
       });
 
@@ -120,7 +139,44 @@ export default function UploadScreen() {
       console.log('✅ Post created successfully!');
       console.log('Post ID:', post?.id);
 
-      // Step 3: Show success animation
+      // Step 3: Award XP for the post (wrapped in try-catch so post succeeds even if XP fails)
+      try {
+        console.log('🎯 Awarding XP for post...');
+        setUploadProgress('Awarding XP...');
+
+        // Update streak first
+        const { streak, multiplier } = await updatePostStreak(user.id);
+        console.log(`Streak: ${streak} days, Multiplier: ${multiplier}x`);
+
+        // Get XP amount for this post type
+        const postTypeConfig = POST_TYPE_CONFIGS.find(c => c.type === postType);
+        const baseXP = postTypeConfig?.baseXP || 0;
+
+        // Award XP (verification bonus will be applied later if verified)
+        const xpResult = await awardXP(
+          user.id,
+          baseXP,
+          'post',
+          post?.id,
+          multiplier
+        );
+
+        if (xpResult.success) {
+          console.log(`✅ Awarded ${xpResult.xpAwarded} XP!`);
+          setXpGained(xpResult.xpAwarded);
+
+          if (xpResult.levelUpResult.didLevelUp) {
+            console.log(`🎉 Level up! ${xpResult.levelUpResult.oldLevel} → ${xpResult.levelUpResult.newLevel}`);
+            setDidLevelUp(true);
+            setNewLevel(xpResult.levelUpResult.newLevel);
+          }
+        }
+      } catch (xpError: any) {
+        console.warn('⚠️ XP awarding failed (migrations may not be run yet):', xpError.message);
+        // Continue with post success even if XP fails
+      }
+
+      // Step 4: Show success animation
       setUploadProgress('Done!');
       setMode('success');
       setShowSuccessBurst(true);
@@ -169,6 +225,14 @@ export default function UploadScreen() {
         )}
         <Animated.View style={[styles.successFlash, successAnimatedStyle]} />
         <Text style={styles.successText}>POST UPLOADED</Text>
+        {xpGained > 0 && (
+          <View style={styles.xpGainContainer}>
+            <Text style={styles.xpGainText}>+{xpGained} XP</Text>
+          </View>
+        )}
+        {didLevelUp && (
+          <Text style={styles.levelUpText}>🎉 LEVEL {newLevel}!</Text>
+        )}
         <Text style={styles.successSubtext}>POWER LEVEL INCREASING...</Text>
       </View>
     );
@@ -180,6 +244,16 @@ export default function UploadScreen() {
       <CameraView
         onCapture={handlePhotoCapture}
         onClose={handleCancel}
+      />
+    );
+  }
+
+  // Post Type Selection screen
+  if (mode === 'postType') {
+    return (
+      <PostTypeSelector
+        onSelect={handlePostTypeSelect}
+        onCancel={handleCancel}
       />
     );
   }
@@ -442,5 +516,38 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginTop: 12,
     opacity: 0.8,
+  },
+  xpGainContainer: {
+    backgroundColor: 'rgba(0, 229, 255, 0.15)',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: '#00e5ff',
+    marginTop: 16,
+    shadowColor: '#00e5ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 16,
+    elevation: 16,
+  },
+  xpGainText: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#00e5ff',
+    letterSpacing: 3,
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 0,
+  },
+  levelUpText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#ffaa00',
+    letterSpacing: 3,
+    marginTop: 12,
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
   },
 });

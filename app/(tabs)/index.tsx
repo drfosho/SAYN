@@ -48,6 +48,7 @@ export default function SAYNFeedScreen() {
         powerLevel: dbPost.power_count,
         isPoweredUp: dbPost.user_has_powered || false,
         badge: dbPost.profiles?.badge_type || undefined,
+        postType: dbPost.post_type || undefined,
       }));
 
       setPosts(mappedPosts);

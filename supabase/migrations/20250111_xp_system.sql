@@ -34,6 +34,10 @@ CREATE INDEX IF NOT EXISTS idx_profiles_rank ON profiles(rank);
 -- Enable Row Level Security (RLS)
 ALTER TABLE xp_transactions ENABLE ROW LEVEL SECURITY;
 
+-- Drop policies if they exist (safe to run multiple times)
+DROP POLICY IF EXISTS "Users can view own XP transactions" ON xp_transactions;
+DROP POLICY IF EXISTS "System can insert XP transactions" ON xp_transactions;
+
 -- RLS Policies for xp_transactions
 -- Users can read their own transactions
 CREATE POLICY "Users can view own XP transactions"

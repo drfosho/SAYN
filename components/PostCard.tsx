@@ -19,6 +19,7 @@ import { BadgeDisplay } from './badges/BadgeDisplay';
 import { usePowerUp } from '@/hooks/usePowerUp';
 import { getRankFromLevel } from '@/utils/getRankFromLevel';
 import { BadgeType } from '@/constants/badges';
+import { POST_TYPE_CONFIGS, PostType } from '@/lib/types/xp';
 
 export interface Post {
   id: string;
@@ -30,6 +31,7 @@ export interface Post {
   powerLevel: number;
   isPoweredUp?: boolean;
   badge?: BadgeType;
+  postType?: PostType;
 }
 
 interface PostCardProps {
@@ -62,6 +64,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
   const isPoweredUp = isPoweredUpByUser(post.id);
   const powerUpCount = getPowerUpCount(post.id);
   const userRank = getRankFromLevel(post.level);
+  const postTypeConfig = post.postType
+    ? POST_TYPE_CONFIGS.find(config => config.type === post.postType)
+    : null;
 
   useEffect(() => {
     const delay = index * 100;
@@ -203,6 +208,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
           <View style={styles.userInfo}>
             <View style={styles.usernameRow}>
               <Text style={styles.username}>{post.username}</Text>
+              {/* Post type badge */}
+              {postTypeConfig && (
+                <View style={[styles.postTypeBadge, { backgroundColor: postTypeConfig.color }]}>
+                  <Text style={styles.postTypeIcon}>{postTypeConfig.icon}</Text>
+                </View>
+              )}
               {/* Verification badge (Natural/Enhanced) */}
               {post.badge && (
                 <BadgeDisplay badgeType={post.badge} size="small" />
@@ -379,6 +390,23 @@ const styles = StyleSheet.create({
     textShadowColor: '#000000',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 0,
+  },
+  postTypeBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#000000',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 8,
+  },
+  postTypeIcon: {
+    fontSize: 12,
   },
   imageContainer: {
     marginBottom: 16,
