@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, FlatList, SafeAreaView, Pressable, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { PostCard, Post } from '@/components/PostCard';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +43,7 @@ export default function SAYNFeedScreen() {
         username: dbPost.profiles?.username || 'Unknown User',
         level: dbPost.profiles?.level || 1,
         avatarUrl: dbPost.profiles?.avatar_url || 'https://via.placeholder.com/150',
+        imageUrl: dbPost.image_url || undefined,
         content: dbPost.caption || '',
         powerLevel: dbPost.power_count,
         isPoweredUp: dbPost.user_has_powered || false,
@@ -66,6 +67,16 @@ export default function SAYNFeedScreen() {
       fetchPosts();
     }
   }, [user, authLoading]);
+
+  // Refresh feed when screen gains focus (e.g., after creating a post)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user && !authLoading) {
+        console.log('🔄 Screen focused, refreshing feed...');
+        fetchPosts(true);
+      }
+    }, [user, authLoading])
+  );
 
   // Handle pull to refresh
   const onRefresh = () => {

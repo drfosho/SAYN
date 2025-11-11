@@ -25,6 +25,7 @@ export interface Post {
   username: string;
   level: number;
   avatarUrl: string;
+  imageUrl?: string;
   content: string;
   powerLevel: number;
   isPoweredUp?: boolean;
@@ -212,10 +213,23 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
           </View>
         </View>
 
-        {/* Content section */}
-        <View style={styles.contentSection}>
-          <Text style={styles.content}>{post.content}</Text>
-        </View>
+        {/* Post Image (if present) */}
+        {post.imageUrl && (
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: post.imageUrl }}
+              style={styles.postImage}
+              resizeMode="cover"
+            />
+          </View>
+        )}
+
+        {/* Content/Caption section */}
+        {post.content && (
+          <View style={styles.contentSection}>
+            <Text style={styles.content}>{post.content}</Text>
+          </View>
+        )}
 
         {/* Power Up button */}
         <View>
@@ -365,6 +379,24 @@ const styles = StyleSheet.create({
     textShadowColor: '#000000',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 0,
+  },
+  imageContainer: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: '#000000',
+    backgroundColor: '#0d1128',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 12,
+  },
+  postImage: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    backgroundColor: '#0d1128',
   },
   contentSection: {
     marginBottom: 18,

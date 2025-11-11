@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -22,6 +23,8 @@ interface PostPreviewProps {
   imageUri?: string;
   onPost: (caption: string, requestVerification: boolean) => void;
   onCancel: () => void;
+  uploading?: boolean;
+  uploadProgress?: string;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -34,6 +37,8 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
   imageUri,
   onPost,
   onCancel,
+  uploading = false,
+  uploadProgress = '',
 }) => {
   const [caption, setCaption] = useState('');
   const [requestVerification, setRequestVerification] = useState(true);
@@ -102,11 +107,14 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
             <TextInput
               style={styles.input}
               placeholder="Share your progress..."
-              placeholderTextColor="#6b7280"
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
               value={caption}
               onChangeText={setCaption}
               multiline
+              editable={true}
+              autoFocus={true}
               maxLength={500}
+              textAlignVertical="top"
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
             />
@@ -147,19 +155,41 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
           onPress={handlePost}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          style={[styles.postButtonWrapper, postButtonAnimatedStyle]}
+          disabled={uploading}
+          style={[
+            styles.postButtonWrapper,
+            postButtonAnimatedStyle,
+            uploading && styles.postButtonDisabled,
+          ]}
         >
           <LinearGradient
-            colors={['#00e5ff', '#ff0080']}
+            colors={uploading ? ['#333', '#555'] : ['#00e5ff', '#ff0080']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.postButton}
           >
-            <Text style={styles.postButtonText}>⚡ POST TO FEED</Text>
+            {uploading ? (
+              <View style={styles.uploadingContainer}>
+                <ActivityIndicator color="#ffffff" size="small" />
+                <Text style={styles.uploadingText}>{uploadProgress || 'Posting...'}</Text>
+              </View>
+            ) : (
+              <Text style={styles.postButtonText}>⚡ POST TO FEED</Text>
+            )}
           </LinearGradient>
           <View style={styles.postButtonGlow} />
         </AnimatedPressable>
       </ScrollView>
+
+      {/* Loading Overlay */}
+      {uploading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContent}>
+            <ActivityIndicator size="large" color="#00e5ff" />
+            <Text style={styles.loadingText}>{uploadProgress || 'Posting...'}</Text>
+          </View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -375,5 +405,40 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 20,
+  },
+  postButtonDisabled: {
+    opacity: 0.6,
+  },
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  uploadingText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 1,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(5, 8, 20, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  loadingContent: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#00e5ff',
+    letterSpacing: 1,
   },
 });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Pressable, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, Pressable, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -7,6 +7,9 @@ import { CameraView } from '@/components/CameraView';
 import { PostPreview } from '@/components/PostPreview';
 import { ElectricBurst } from '@/components/ElectricBurst';
 import { useCamera, CapturedPhoto } from '@/hooks/useCamera';
+import { useAuth } from '@/contexts/AuthContext';
+import { uploadPostImage } from '@/lib/api/storage';
+import { createPost } from '@/lib/api/posts';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,9 +23,12 @@ type UploadMode = 'select' | 'camera' | 'preview' | 'success';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function UploadScreen() {
+  const { user } = useAuth();
   const [mode, setMode] = useState<UploadMode>('select');
   const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
   const [showSuccessBurst, setShowSuccessBurst] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
   const { pickImageFromLibrary } = useCamera();
 
   const successOpacity = useSharedValue(0);
@@ -53,22 +59,93 @@ export default function UploadScreen() {
     setMode('preview');
   };
 
-  const handlePost = (caption: string, requestVerification: boolean) => {
-    // TODO: Add to local state (will implement in next phase)
-    console.log('Posting:', { caption, requestVerification, photo: capturedPhoto });
+  const handlePost = async (caption: string, requestVerification: boolean) => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to post');
+      return;
+    }
 
-    // Show success animation
-    setMode('success');
-    setShowSuccessBurst(true);
+    if (uploading) {
+      return; // Prevent double-submit
+    }
 
-    // Flash effect
-    successOpacity.value = 0.15;
-    successOpacity.value = withTiming(0, { duration: 150 });
+    console.log('🚀 Starting post upload...');
+    console.log('User ID:', user.id);
+    console.log('Caption:', caption);
+    console.log('Verification requested:', requestVerification);
+    console.log('Has photo:', !!capturedPhoto);
 
-    // Navigate back after animation
-    setTimeout(() => {
-      router.back();
-    }, 800);
+    setUploading(true);
+
+    try {
+      let imageUrl = null;
+
+      // Step 1: Upload image to storage if present
+      if (capturedPhoto?.uri) {
+        console.log('📤 Uploading image to storage...');
+        console.log('Image URI:', capturedPhoto.uri);
+        setUploadProgress('Uploading image...');
+
+        const { data: uploadedUrl, error: uploadError } = await uploadPostImage(
+          user.id,
+          capturedPhoto.uri
+        );
+
+        if (uploadError) {
+          console.error('❌ Image upload error:', uploadError);
+          throw new Error(`Failed to upload image: ${uploadError}`);
+        }
+
+        imageUrl = uploadedUrl;
+        console.log('✅ Image uploaded successfully!');
+        console.log('Public URL:', imageUrl);
+      }
+
+      // Step 2: Create post in database
+      console.log('💾 Creating post in database...');
+      setUploadProgress('Creating post...');
+
+      const { data: post, error: postError } = await createPost({
+        user_id: user.id,
+        image_url: imageUrl || undefined,
+        caption: caption || undefined,
+        verification_requested: requestVerification,
+      });
+
+      if (postError) {
+        console.error('❌ Post creation error:', postError);
+        throw new Error(`Failed to create post: ${postError}`);
+      }
+
+      console.log('✅ Post created successfully!');
+      console.log('Post ID:', post?.id);
+
+      // Step 3: Show success animation
+      setUploadProgress('Done!');
+      setMode('success');
+      setShowSuccessBurst(true);
+
+      // Flash effect
+      successOpacity.value = 0.15;
+      successOpacity.value = withTiming(0, { duration: 150 });
+
+      // Navigate back after animation
+      setTimeout(() => {
+        router.back();
+        // Trigger refresh of feed (handled by screen focus)
+      }, 800);
+    } catch (error: any) {
+      console.error('❌ Error creating post:', error);
+      setUploading(false);
+      setUploadProgress('');
+      setMode('preview');
+
+      Alert.alert(
+        'Failed to Create Post',
+        error.message || 'Something went wrong. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const handleCancel = () => {
@@ -114,6 +191,8 @@ export default function UploadScreen() {
         imageUri={capturedPhoto?.uri}
         onPost={handlePost}
         onCancel={handleCancel}
+        uploading={uploading}
+        uploadProgress={uploadProgress}
       />
     );
   }
