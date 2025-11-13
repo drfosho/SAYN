@@ -42,6 +42,7 @@ export default function ProfileScreen() {
 
   const [profile, setProfile] = useState<DBProfile | null>(null);
   const [posts, setPosts] = useState<GridPost[]>([]);
+  const [rawPosts, setRawPosts] = useState<DBPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
@@ -85,11 +86,14 @@ export default function ProfileScreen() {
         } else {
           console.log('✅ Posts loaded:', postsData?.length || 0);
 
+          // Store raw posts for verification stats
+          setRawPosts(postsData || []);
+
           // Map posts to grid format
           const gridPosts: GridPost[] = (postsData || []).map((post) => ({
             id: post.id,
-            imageUrl: post.media_url || undefined,
-            isVerified: post.is_verified || false,
+            imageUrl: post.image_url || undefined,
+            isVerified: post.verification_status === 'verified',
             powerLevel: post.power_count,
           }));
 
@@ -165,6 +169,13 @@ export default function ProfileScreen() {
   // Calculate XP for next level (simplified formula)
   const nextLevelXP = profile.level * 1000;
   const currentXP = profile.xp % nextLevelXP;
+
+  // Calculate verification stats
+  const verifiedPosts = rawPosts.filter(p => p.verification_status === 'verified').length;
+  const requestedVerificationPosts = rawPosts.filter(p => p.verification_requested).length;
+  const verificationRate = requestedVerificationPosts > 0
+    ? Math.round((verifiedPosts / requestedVerificationPosts) * 100)
+    : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -267,6 +278,16 @@ export default function ProfileScreen() {
               />
               <StatItem label="Current Streak" value={`${profile.streak_days} days`} />
               <StatItem
+                label="Verified Posts"
+                value={verifiedPosts.toString()}
+                highlight={verifiedPosts > 0}
+              />
+              <StatItem
+                label="Verification Rate"
+                value={requestedVerificationPosts > 0 ? `${verificationRate}%` : 'N/A'}
+                highlight={verificationRate >= 70}
+              />
+              <StatItem
                 label="Member Since"
                 value={new Date(profile.created_at).toLocaleDateString('en-US', {
                   month: 'short',
@@ -337,12 +358,16 @@ const ActionButton: React.FC<ActionButtonProps> = ({ label, gradient, onPress, i
 interface StatItemProps {
   label: string;
   value: string;
+  highlight?: boolean;
 }
 
-const StatItem: React.FC<StatItemProps> = ({ label, value }) => (
+const StatItem: React.FC<StatItemProps> = ({ label, value, highlight = false }) => (
   <View style={styles.statItem}>
     <Text style={styles.statItemLabel}>{label}</Text>
-    <Text style={styles.statItemValue}>{value}</Text>
+    <Text style={[styles.statItemValue, highlight && styles.statItemValueHighlight]}>
+      {highlight && '✓ '}
+      {value}
+    </Text>
   </View>
 );
 
@@ -498,5 +523,11 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#ffffff',
     letterSpacing: 1,
+  },
+  statItemValueHighlight: {
+    color: '#00ff88',
+    textShadowColor: '#00ff88',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
   },
 });

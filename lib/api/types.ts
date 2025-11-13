@@ -26,8 +26,13 @@ export interface Post {
   image_url: string | null;
   caption: string | null;
   post_type: 'daily_check_in' | 'progress_update' | 'peak_condition' | 'just_sharing' | null;
-  verification_status: 'pending' | 'verified' | 'rejected' | null;
+  verification_status: 'verified' | 'not_verified' | null;
   verification_requested: boolean;
+  verification_confidence: number | null;
+  verification_details: Record<string, any> | null;
+  comparison_enabled: boolean;
+  comparison_previous_post_id: string | null;
+  comparison_feedback: string | null;
   power_count: number;
   comment_count: number;
   created_at: string;
@@ -35,6 +40,7 @@ export interface Post {
   // Joined data
   profiles?: Profile;
   user_has_powered?: boolean;
+  comparison_previous_post?: Post; // Joined previous post for comparisons
 }
 
 export interface Follow {
@@ -81,10 +87,18 @@ export interface PostCreate {
   caption?: string;
   post_type?: 'daily_check_in' | 'progress_update' | 'peak_condition' | 'just_sharing';
   verification_requested?: boolean;
+  comparison_enabled?: boolean;
+  comparison_previous_post_id?: string;
+  comparison_feedback?: string;
 }
 
 export interface PostUpdate {
   caption?: string;
   verification_requested?: boolean;
-  verification_status?: 'pending' | 'verified' | 'rejected' | null;
+  verification_status?: 'verified' | 'not_verified' | null;
+  verification_confidence?: number | null;
+  verification_details?: Record<string, any> | null;
+  comparison_enabled?: boolean;
+  comparison_previous_post_id?: string;
+  comparison_feedback?: string;
 }

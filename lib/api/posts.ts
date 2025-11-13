@@ -361,6 +361,41 @@ export async function incrementPowerCount(postId: string): Promise<ApiResponse<b
 }
 
 /**
+ * Get user's most recent progress update post
+ * Used for progress comparison feature
+ */
+export async function getLatestProgressPost(userId: string): Promise<ApiResponse<Post>> {
+  try {
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        profiles (
+          id,
+          username,
+          display_name,
+          avatar_url,
+          badge_type,
+          is_verified_coach
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('post_type', 'progress_update')
+      .not('image_url', 'is', null) // Must have an image
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return { data, error: null };
+  } catch (error: any) {
+    console.error('Get latest progress post error:', error);
+    return { data: null, error: error.message };
+  }
+}
+
+/**
  * Decrement power count for a post
  * This is called after a power up is removed
  */

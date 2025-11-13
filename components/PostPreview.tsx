@@ -19,13 +19,21 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import { ProgressComparisonModal } from './ProgressComparisonModal';
+import type { Post } from '@/lib/api/types';
 
 interface PostPreviewProps {
   imageUri?: string;
-  onPost: (caption: string, requestVerification: boolean) => void;
+  onPost: (caption: string, requestVerification: boolean, comparisonData?: {
+    enabled: boolean;
+    feedback?: string;
+    previousPostId?: string;
+  }) => void;
   onCancel: () => void;
   uploading?: boolean;
   uploadProgress?: string;
+  postType?: 'daily_check_in' | 'progress_update' | 'peak_condition' | 'just_sharing';
+  previousProgressPost?: Post | null;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -40,12 +48,25 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
   onCancel,
   uploading = false,
   uploadProgress = '',
+  postType,
+  previousProgressPost = null,
 }) => {
   const [caption, setCaption] = useState('');
   const [requestVerification, setRequestVerification] = useState(true);
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+  const [comparisonData, setComparisonData] = useState<{
+    enabled: boolean;
+    feedback?: string;
+    previousPostId?: string;
+  }>({ enabled: false });
   const [isFocused, setIsFocused] = useState(false);
   const postButtonScale = useSharedValue(1);
   const captionInputRef = useRef<TextInput>(null);
+
+  const isProgressUpdate = postType === 'progress_update';
+  const hasImage = !!imageUri;
+  const hasPreviousProgress = !!previousProgressPost;
+  const canCompare = isProgressUpdate && hasImage && hasPreviousProgress;
 
   const handleCaptionChange = (text: string) => {
     console.log('Caption changed:', text);
@@ -75,7 +96,20 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
   };
 
   const handlePost = () => {
-    onPost(caption, requestVerification);
+    onPost(caption, requestVerification, comparisonData);
+  };
+
+  const handleComparePress = () => {
+    setShowComparisonModal(true);
+  };
+
+  const handleComparisonShare = (feedback: string, previousPostId: string) => {
+    setComparisonData({
+      enabled: true,
+      feedback,
+      previousPostId,
+    });
+    setShowComparisonModal(false);
   };
 
   return (
@@ -147,12 +181,17 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
           <Text style={styles.charCount}>{caption.length} / 500</Text>
         </View>
 
-        {/* Verification Toggle */}
+        {/* AI Verification Toggle */}
         <View style={styles.verificationSection}>
           <View style={styles.verificationInfo}>
-            <Text style={styles.verificationLabel}>REQUEST VERIFICATION</Text>
+            <View style={styles.verificationHeader}>
+              <Text style={styles.verificationLabel}>VERIFY THIS IMAGE</Text>
+              <View style={styles.bonusBadge}>
+                <Text style={styles.bonusText}>+50% XP</Text>
+              </View>
+            </View>
             <Text style={styles.verificationSubtext}>
-              Get verified by the community for POWER POINTS
+              AI checks for editing, filters, or manipulation
             </Text>
           </View>
           <Pressable
@@ -174,6 +213,40 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
             </View>
           </Pressable>
         </View>
+
+        {/* Progress Comparison Button */}
+        {isProgressUpdate && hasImage && (
+          <Pressable
+            onPress={handleComparePress}
+            disabled={!canCompare || uploading}
+            style={[
+              styles.comparisonButton,
+              !canCompare && styles.comparisonButtonDisabled,
+              comparisonData.enabled && styles.comparisonButtonActive,
+            ]}
+          >
+            <LinearGradient
+              colors={
+                comparisonData.enabled
+                  ? ['#00ff88', '#00e5ff']
+                  : canCompare
+                  ? ['#ff00aa', '#ff4500']
+                  : ['#1a1f3a', '#0d1128']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.comparisonButtonGradient}
+            >
+              <Text style={styles.comparisonButtonText}>
+                {comparisonData.enabled
+                  ? '✓ COMPARISON ADDED (+10 XP)'
+                  : canCompare
+                  ? '📊 COMPARE TO PREVIOUS'
+                  : '📊 POST YOUR FIRST PROGRESS PIC'}
+              </Text>
+            </LinearGradient>
+          </Pressable>
+        )}
 
         {/* Post Button */}
         <AnimatedPressable
@@ -214,6 +287,19 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
             <Text style={styles.loadingText}>{uploadProgress || 'Posting...'}</Text>
           </View>
         </View>
+      )}
+
+      {/* Progress Comparison Modal */}
+      {previousProgressPost && imageUri && (
+        <ProgressComparisonModal
+          visible={showComparisonModal}
+          currentImageUri={imageUri}
+          previousImageUrl={previousProgressPost.image_url || ''}
+          previousPostDate={new Date(previousProgressPost.created_at)}
+          onClose={() => setShowComparisonModal(false)}
+          onShare={handleComparisonShare}
+          previousPostId={previousProgressPost.id}
+        />
       )}
     </KeyboardAvoidingView>
   );
@@ -350,12 +436,31 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 16,
   },
+  verificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 8,
+  },
   verificationLabel: {
     fontSize: 14,
     fontWeight: '900',
     color: '#ffffff',
     letterSpacing: 1.5,
-    marginBottom: 4,
+  },
+  bonusBadge: {
+    backgroundColor: '#00e5ff',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  bonusText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#000000',
+    letterSpacing: 1,
   },
   verificationSubtext: {
     fontSize: 12,
@@ -468,5 +573,43 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#00e5ff',
     letterSpacing: 1,
+  },
+  comparisonButton: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  comparisonButtonDisabled: {
+    opacity: 0.5,
+  },
+  comparisonButtonActive: {
+    shadowColor: '#00ff88',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 16,
+  },
+  comparisonButtonGradient: {
+    paddingVertical: 18,
+    borderRadius: 14,
+    borderWidth: 4,
+    borderColor: '#000000',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 12,
+  },
+  comparisonButtonText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 1.5,
+    textAlign: 'center',
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
   },
 });

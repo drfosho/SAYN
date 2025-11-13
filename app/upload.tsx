@@ -10,9 +10,12 @@ import { ElectricBurst } from '@/components/ElectricBurst';
 import { useCamera, CapturedPhoto } from '@/hooks/useCamera';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadPostImage } from '@/lib/api/storage';
-import { createPost } from '@/lib/api/posts';
+import { createPost, updatePost, getLatestProgressPost } from '@/lib/api/posts';
 import { PostType, POST_TYPE_CONFIGS } from '@/lib/types/xp';
 import { awardXP, updatePostStreak } from '@/lib/api/xp';
+import { verifyImage, calculateVerificationBonus } from '@/lib/api/verification';
+import { calculateComparisonBonus } from '@/lib/api/progress-comparison';
+import type { Post } from '@/lib/api/types';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -36,6 +39,7 @@ export default function UploadScreen() {
   const [xpGained, setXpGained] = useState(0);
   const [didLevelUp, setDidLevelUp] = useState(false);
   const [newLevel, setNewLevel] = useState(0);
+  const [previousProgressPost, setPreviousProgressPost] = useState<Post | null>(null);
   const { pickImageFromLibrary} = useCamera();
 
   const successOpacity = useSharedValue(0);
@@ -66,12 +70,38 @@ export default function UploadScreen() {
     setMode('postType'); // Go to post type selection first
   };
 
-  const handlePostTypeSelect = (selectedType: PostType) => {
+  const handlePostTypeSelect = async (selectedType: PostType) => {
     setPostType(selectedType);
+
+    // If progress update, fetch previous progress post for comparison
+    if (selectedType === 'progress_update' && user?.id) {
+      console.log('📊 Fetching previous progress post for comparison...');
+      const { data: prevPost, error } = await getLatestProgressPost(user.id);
+      if (error) {
+        console.warn('Could not fetch previous progress post:', error);
+      } else if (prevPost) {
+        console.log('✅ Found previous progress post:', prevPost.id);
+        setPreviousProgressPost(prevPost);
+      } else {
+        console.log('No previous progress posts found');
+        setPreviousProgressPost(null);
+      }
+    } else {
+      setPreviousProgressPost(null);
+    }
+
     setMode('preview');
   };
 
-  const handlePost = async (caption: string, requestVerification: boolean) => {
+  const handlePost = async (
+    caption: string,
+    requestVerification: boolean,
+    comparisonData?: {
+      enabled: boolean;
+      feedback?: string;
+      previousPostId?: string;
+    }
+  ) => {
     if (!user) {
       Alert.alert('Error', 'You must be logged in to post');
       return;
@@ -129,6 +159,9 @@ export default function UploadScreen() {
         caption: caption || undefined,
         post_type: postType,
         verification_requested: requestVerification,
+        comparison_enabled: comparisonData?.enabled || false,
+        comparison_previous_post_id: comparisonData?.previousPostId,
+        comparison_feedback: comparisonData?.feedback,
       });
 
       if (postError) {
@@ -139,7 +172,38 @@ export default function UploadScreen() {
       console.log('✅ Post created successfully!');
       console.log('Post ID:', post?.id);
 
-      // Step 3: Award XP for the post (wrapped in try-catch so post succeeds even if XP fails)
+      // Step 3: AI Verification (if requested and has image)
+      let isVerified = false;
+      let verificationBonus = 0;
+
+      if (requestVerification && imageUrl && post?.id) {
+        try {
+          console.log('🔍 Verifying image authenticity...');
+          setUploadProgress('Verifying image...');
+
+          const verificationResult = await verifyImage(imageUrl);
+
+          // Update post with verification result
+          await updatePost(post.id, {
+            verification_status: verificationResult.verified ? 'verified' : 'not_verified',
+            verification_confidence: verificationResult.confidence,
+            verification_details: verificationResult.details,
+          });
+
+          isVerified = verificationResult.verified;
+
+          if (verificationResult.verified) {
+            console.log(`✅ Image verified! Confidence: ${verificationResult.confidence}`);
+          } else {
+            console.log(`❌ Verification failed. Reasons: ${verificationResult.details.reasonsForFailure?.join(', ')}`);
+          }
+        } catch (verificationError: any) {
+          console.warn('⚠️ Verification failed (continuing without verification):', verificationError.message);
+          // Continue even if verification fails - post still succeeds
+        }
+      }
+
+      // Step 4: Award XP for the post (wrapped in try-catch so post succeeds even if XP fails)
       try {
         console.log('🎯 Awarding XP for post...');
         setUploadProgress('Awarding XP...');
@@ -152,7 +216,20 @@ export default function UploadScreen() {
         const postTypeConfig = POST_TYPE_CONFIGS.find(c => c.type === postType);
         const baseXP = postTypeConfig?.baseXP || 0;
 
-        // Award XP (verification bonus will be applied later if verified)
+        // Calculate verification bonus if verified
+        if (isVerified) {
+          verificationBonus = calculateVerificationBonus(baseXP, true);
+          console.log(`🎖️ Verification bonus: +${verificationBonus} XP (+50%)`);
+        }
+
+        // Calculate comparison bonus if shared
+        let comparisonBonus = 0;
+        if (comparisonData?.enabled) {
+          comparisonBonus = calculateComparisonBonus();
+          console.log(`📊 Comparison bonus: +${comparisonBonus} XP`);
+        }
+
+        // Award base XP
         const xpResult = await awardXP(
           user.id,
           baseXP,
@@ -161,9 +238,43 @@ export default function UploadScreen() {
           multiplier
         );
 
+        let totalXP = 0;
+
         if (xpResult.success) {
-          console.log(`✅ Awarded ${xpResult.xpAwarded} XP!`);
-          setXpGained(xpResult.xpAwarded);
+          totalXP = xpResult.xpAwarded;
+          console.log(`✅ Awarded ${xpResult.xpAwarded} XP (base + streak)`);
+
+          // Award verification bonus separately if verified
+          if (verificationBonus > 0) {
+            const bonusResult = await awardXP(
+              user.id,
+              verificationBonus,
+              'verification_bonus',
+              post?.id
+            );
+
+            if (bonusResult.success) {
+              totalXP += bonusResult.xpAwarded;
+              console.log(`✅ Awarded ${bonusResult.xpAwarded} XP verification bonus!`);
+            }
+          }
+
+          // Award comparison bonus if shared
+          if (comparisonBonus > 0) {
+            const compBonusResult = await awardXP(
+              user.id,
+              comparisonBonus,
+              'comparison_bonus',
+              post?.id
+            );
+
+            if (compBonusResult.success) {
+              totalXP += compBonusResult.xpAwarded;
+              console.log(`✅ Awarded ${compBonusResult.xpAwarded} XP comparison bonus!`);
+            }
+          }
+
+          setXpGained(totalXP);
 
           if (xpResult.levelUpResult.didLevelUp) {
             console.log(`🎉 Level up! ${xpResult.levelUpResult.oldLevel} → ${xpResult.levelUpResult.newLevel}`);
@@ -176,7 +287,7 @@ export default function UploadScreen() {
         // Continue with post success even if XP fails
       }
 
-      // Step 4: Show success animation
+      // Step 5: Show success animation
       setUploadProgress('Done!');
       setMode('success');
       setShowSuccessBurst(true);
@@ -267,6 +378,8 @@ export default function UploadScreen() {
         onCancel={handleCancel}
         uploading={uploading}
         uploadProgress={uploadProgress}
+        postType={postType}
+        previousProgressPost={previousProgressPost}
       />
     );
   }

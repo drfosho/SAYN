@@ -16,6 +16,8 @@ import { ElectricBurst } from './ElectricBurst';
 import { ScanLines } from './ScanLines';
 import { PowerUpAnimation } from './PowerUpAnimation';
 import { BadgeDisplay } from './badges/BadgeDisplay';
+import { VerifiedPostBadge } from './VerifiedPostBadge';
+import { ProgressComparisonBadge } from './ProgressComparisonBadge';
 import { usePowerUp } from '@/hooks/usePowerUp';
 import { getRankFromLevel } from '@/utils/getRankFromLevel';
 import { BadgeType } from '@/constants/badges';
@@ -32,6 +34,9 @@ export interface Post {
   isPoweredUp?: boolean;
   badge?: BadgeType;
   postType?: PostType;
+  verificationStatus?: 'verified' | 'not_verified' | null;
+  comparisonEnabled?: boolean;
+  comparisonFeedback?: string;
 }
 
 interface PostCardProps {
@@ -214,6 +219,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
                   <Text style={styles.postTypeIcon}>{postTypeConfig.icon}</Text>
                 </View>
               )}
+              {/* Progress comparison badge */}
+              {post.comparisonEnabled && (
+                <ProgressComparisonBadge size="small" />
+              )}
               {/* Verification badge (Natural/Enhanced) */}
               {post.badge && (
                 <BadgeDisplay badgeType={post.badge} size="small" />
@@ -232,6 +241,22 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
               style={styles.postImage}
               resizeMode="cover"
             />
+            {/* AI Verification Badge */}
+            {post.verificationStatus === 'verified' && (
+              <View style={styles.verifiedBadgeContainer}>
+                <VerifiedPostBadge size="small" />
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* AI Comparison Feedback */}
+        {post.comparisonEnabled && post.comparisonFeedback && (
+          <View style={styles.comparisonFeedbackSection}>
+            <Text style={styles.comparisonFeedbackTitle}>AI PROGRESS ANALYSIS</Text>
+            <View style={styles.comparisonFeedbackBox}>
+              <Text style={styles.comparisonFeedbackText}>{post.comparisonFeedback}</Text>
+            </View>
           </View>
         )}
 
@@ -425,6 +450,36 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 3,
     backgroundColor: '#0d1128',
+  },
+  verifiedBadgeContainer: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+  },
+  comparisonFeedbackSection: {
+    marginBottom: 18,
+  },
+  comparisonFeedbackTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#ff00aa',
+    letterSpacing: 1.5,
+    marginBottom: 10,
+  },
+  comparisonFeedbackBox: {
+    backgroundColor: 'rgba(255, 0, 170, 0.05)',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 0, 170, 0.2)',
+  },
+  comparisonFeedbackText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+    lineHeight: 22,
+    letterSpacing: 0.3,
   },
   contentSection: {
     marginBottom: 18,
