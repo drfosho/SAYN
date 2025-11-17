@@ -9,12 +9,14 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { BADGE_DEFINITIONS } from '@/constants/badges';
 
 interface EnhancedBadgeProps {
   size?: 'small' | 'medium' | 'large';
   onPress?: () => void;
   showLabel?: boolean;
+  verified?: boolean; // New prop for verified status
 }
 
 const SIZES = {
@@ -27,6 +29,7 @@ export const EnhancedBadge: React.FC<EnhancedBadgeProps> = ({
   size = 'medium',
   onPress,
   showLabel = false,
+  verified = true, // Default to true for backward compatibility
 }) => {
   const pulse = useSharedValue(1);
   const { color, accentColor, name } = BADGE_DEFINITIONS.enhanced;
@@ -125,7 +128,16 @@ export const EnhancedBadge: React.FC<EnhancedBadgeProps> = ({
       {/* Label */}
       {showLabel && size !== 'small' && (
         <View style={styles.labelContainer}>
-          <Text style={[styles.label, { fontSize: dimensions.fontSize }]}>{name}</Text>
+          <Text style={[styles.label, { fontSize: dimensions.fontSize }]}>
+            {verified ? name : name + ' (Unverified)'}
+          </Text>
+        </View>
+      )}
+
+      {/* Unverified overlay */}
+      {!verified && (
+        <View style={styles.unverifiedOverlay}>
+          <Ionicons name="lock-closed" size={dimensions.icon * 0.6} color="#ffa500" />
         </View>
       )}
     </View>
@@ -206,5 +218,15 @@ const styles = StyleSheet.create({
     color: '#9D4EDD',
     fontWeight: '900',
     letterSpacing: 1,
+  },
+  unverifiedOverlay: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#000',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 2,
+    borderColor: '#ffa500',
   },
 });

@@ -13,6 +13,10 @@ export interface Profile {
   power_points: number;
   streak_days: number;
   badge_type: 'natural' | 'enhanced' | 'under_review' | null;
+  badge_verified: boolean;
+  badge_application_date: string | null;
+  badge_verification_date: string | null;
+  badge_questionnaire_data: Record<string, any> | null;
   is_verified_coach: boolean;
   fitness_goals: string[] | null;
   experience_level: string | null;

@@ -14,6 +14,12 @@ import {
   POST_TYPE_CONFIGS,
   XP_CONFIG,
 } from '@/lib/types/xp';
+import {
+  notifyLevelUp,
+  notifyRankUp,
+  checkXPMilestone,
+  notifyStreakMilestone,
+} from './notifications';
 
 /**
  * Calculate level from total XP
@@ -172,6 +178,11 @@ export async function updatePostStreak(userId: string): Promise<{
 
     if (updateError) throw updateError;
 
+    // Check for streak milestone notifications (5, 10, 20, 30, 50, 100, etc.)
+    if ([5, 10, 20, 30, 50, 100, 200, 365].includes(newStreak)) {
+      await notifyStreakMilestone(userId, newStreak);
+    }
+
     return { streak: newStreak, multiplier: newMultiplier };
   } catch (error: any) {
     console.error('Error updating post streak:', error);
@@ -234,17 +245,26 @@ export async function awardXP(
   try {
     console.log(`🎯 Awarding ${amount} XP to user ${userId} from ${source}`);
 
-    // Get current user XP
+    // Get current user XP and badge status
     const { data: profile, error: fetchError } = await supabase
       .from('profiles')
-      .select('xp, level, rank')
+      .select('xp, level, rank, badge_type, badge_verified')
       .eq('id', userId)
       .single();
 
     if (fetchError) throw fetchError;
 
+    // Apply Natural badge bonus (10% extra XP)
+    let finalAmount = amount;
+    let naturalBadgeBonus = 0;
+    if (profile?.badge_type === 'natural' && profile?.badge_verified === true) {
+      naturalBadgeBonus = Math.floor(amount * 0.1); // 10% bonus
+      finalAmount = amount + naturalBadgeBonus;
+      console.log(`🌿 Natural badge bonus: +${naturalBadgeBonus} XP (10%)`);
+    }
+
     const oldXP = profile?.xp || 0;
-    const newXP = oldXP + amount;
+    const newXP = oldXP + finalAmount;
     const newLevel = calculateLevel(newXP);
     const newRank = getRankForXP(newXP);
 
@@ -260,12 +280,12 @@ export async function awardXP(
 
     if (updateError) throw updateError;
 
-    // Create XP transaction record
+    // Create XP transaction record (using finalAmount to include badge bonus)
     const { data: transaction, error: transactionError } = await supabase
       .from('xp_transactions')
       .insert({
         user_id: userId,
-        amount,
+        amount: finalAmount,
         source,
         source_id: sourceId,
         multiplier,
@@ -279,19 +299,28 @@ export async function awardXP(
     const levelUpResult = checkLevelUp(oldXP, newXP);
     const rankUpResult = checkRankUp(oldXP, newXP);
 
-    console.log(`✅ Awarded ${amount} XP. New total: ${newXP} XP, Level ${newLevel}, Rank: ${newRank}`);
+    console.log(
+      `✅ Awarded ${finalAmount} XP${naturalBadgeBonus > 0 ? ` (${amount} + ${naturalBadgeBonus} Natural bonus)` : ''}. New total: ${newXP} XP, Level ${newLevel}, Rank: ${newRank}`
+    );
 
     if (levelUpResult.didLevelUp) {
       console.log(`🎉 LEVEL UP! ${levelUpResult.oldLevel} → ${levelUpResult.newLevel}`);
+      // Send level up notification
+      await notifyLevelUp(userId, levelUpResult.newLevel);
     }
 
     if (rankUpResult.didRankUp) {
       console.log(`👑 RANK UP! ${rankUpResult.oldRank} → ${rankUpResult.newRank}`);
+      // Send rank up notification
+      await notifyRankUp(userId, rankUpResult.newRank);
     }
+
+    // Check for XP milestone notifications
+    await checkXPMilestone(userId, newXP);
 
     return {
       success: true,
-      xpAwarded: amount,
+      xpAwarded: finalAmount,
       newTotalXP: newXP,
       levelUpResult,
       rankUpResult,

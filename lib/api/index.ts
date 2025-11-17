@@ -17,3 +17,15 @@ export * from './follows';
 
 // Storage operations
 export * from './storage';
+
+// Leaderboard operations
+export * from './leaderboard';
+
+// Badge verification operations
+export * from './badges';
+
+// Search and discovery operations
+export * from './search';
+
+// Notification operations
+export * from './notifications';

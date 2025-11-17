@@ -3,6 +3,7 @@ import React from 'react';
 import { Text, StyleSheet, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { HapticTab } from '@/components/haptic-tab';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 function TabIcon({ emoji, color }: { emoji: string; color: string }) {
   return <Text style={[styles.tabIcon, { color }]}>{emoji}</Text>;
@@ -76,6 +77,20 @@ export default function TabLayout() {
               style={styles.createTabButton}
             />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Alerts',
+          tabBarIcon: () => <NotificationBell />,
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          tabBarIcon: ({ color }) => <TabIcon emoji="🔍" color={color} />,
         }}
       />
       <Tabs.Screen
