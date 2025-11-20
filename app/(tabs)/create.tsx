@@ -1,23 +1,22 @@
-import React from 'react';
-import { StyleSheet, View, Text, SafeAreaView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
+/**
+ * Create tab - Immediately redirects to upload screen
+ * This tab acts as a navigation trigger to the upload flow
+ */
 export default function CreateScreen() {
+  // Navigate to upload screen when this tab is focused
+  useFocusEffect(() => {
+    router.push('/upload');
+  });
+
+  // Show loading indicator while redirecting
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
-      <LinearGradient
-        colors={['#0a0e27', '#0a0e27']}
-        style={styles.background}
-      >
-        <View style={styles.content}>
-          <Text style={styles.emoji}>➕</Text>
-          <Text style={styles.title}>CREATE POST</Text>
-          <Text style={styles.subtitle}>Coming Soon</Text>
-        </View>
-      </LinearGradient>
-    </SafeAreaView>
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color="#00d4ff" />
+    </View>
   );
 }
 
@@ -25,28 +24,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0e27',
-  },
-  background: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  emoji: {
-    fontSize: 80,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    letterSpacing: 2,
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
   },
 });
