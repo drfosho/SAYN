@@ -6,6 +6,8 @@ export type NotificationType =
   | 'follow'
   | 'power_up'
   | 'comment'
+  | 'comment_reply'
+  | 'comment_power_up'
   | 'level_up'
   | 'rank_up'
   | 'streak_milestone'
@@ -126,28 +128,56 @@ export async function markAllAsRead(userId: string): Promise<ApiResponse<boolean
   }
 }
 
+interface CreateNotificationParams {
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  from_user_id?: string;
+  related_post_id?: string;
+  related_comment_id?: string;
+}
+
 /**
- * Create a notification
+ * Create a notification (supports both object and individual parameters)
  */
 export async function createNotification(
-  userId: string,
-  type: NotificationType,
-  title: string,
-  message: string,
+  paramsOrUserId: CreateNotificationParams | string,
+  type?: NotificationType,
+  title?: string,
+  message?: string,
   actorId?: string,
   relatedId?: string
 ): Promise<ApiResponse<Notification>> {
   try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: userId,
-        type,
-        title,
-        message,
+    let insertData: any;
+
+    // Check if first param is an object (new style) or string (old style)
+    if (typeof paramsOrUserId === 'object') {
+      const params = paramsOrUserId;
+      insertData = {
+        user_id: params.user_id,
+        type: params.type,
+        title: params.title,
+        message: params.message,
+        actor_id: params.from_user_id,
+        related_id: params.related_post_id || params.related_comment_id,
+      };
+    } else {
+      // Old style (backwards compatibility)
+      insertData = {
+        user_id: paramsOrUserId,
+        type: type!,
+        title: title!,
+        message: message!,
         actor_id: actorId,
         related_id: relatedId,
-      })
+      };
+    }
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert(insertData)
       .select()
       .single();
 

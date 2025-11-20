@@ -107,3 +107,38 @@ export interface PostUpdate {
   comparison_previous_post_id?: string;
   comparison_feedback?: string;
 }
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  parent_comment_id: string | null;
+  text: string;
+  power_count: number;
+  created_at: string;
+  updated_at: string;
+  edited: boolean;
+  // Joined data
+  profiles?: Profile;
+  user_has_powered?: boolean;
+  replies?: Comment[]; // Nested replies
+  reply_count?: number;
+}
+
+export interface CommentPowerUp {
+  id: string;
+  comment_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface CommentCreate {
+  post_id: string;
+  user_id: string;
+  parent_comment_id?: string;
+  text: string;
+}
+
+export interface CommentUpdate {
+  text: string;
+}

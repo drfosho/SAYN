@@ -29,3 +29,6 @@ export * from './search';
 
 // Notification operations
 export * from './notifications';
+
+// Comment operations
+export * from './comments';

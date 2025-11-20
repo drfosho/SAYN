@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, Image, Pressable, Platform } from 'react-native';
+import { StyleSheet, Text, View, Image, Pressable, Platform, TouchableOpacity } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,6 +10,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { MessageCircle } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { PowerRing } from './PowerRing';
 import { RankBadge } from './RankBadge';
 import { ElectricBurst } from './ElectricBurst';
@@ -37,6 +39,7 @@ export interface Post {
   verificationStatus?: 'verified' | 'not_verified' | null;
   comparisonEnabled?: boolean;
   comparisonFeedback?: string;
+  commentCount?: number;
 }
 
 interface PostCardProps {
@@ -267,6 +270,19 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
           </View>
         )}
 
+        {/* Comments section */}
+        <TouchableOpacity
+          onPress={() => router.push(`/comments/${post.id}`)}
+          style={styles.commentsSection}
+        >
+          <MessageCircle size={18} color="rgba(255,255,255,0.6)" strokeWidth={2} />
+          <Text style={styles.commentsText}>
+            {post.commentCount === 0
+              ? 'Be the first to comment'
+              : `${post.commentCount} ${post.commentCount === 1 ? 'comment' : 'comments'}`}
+          </Text>
+        </TouchableOpacity>
+
         {/* Power Up button */}
         <View>
           {/* "Powered Up by you" indicator */}
@@ -488,6 +504,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#d0d5e9', // Slightly brighter for contrast
     lineHeight: 24,
+    letterSpacing: 0.3,
+  },
+  commentsSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    marginBottom: 16,
+  },
+  commentsText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '600',
     letterSpacing: 0.3,
   },
   powerUpButtonWrapper: {
