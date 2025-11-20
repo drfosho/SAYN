@@ -303,15 +303,49 @@ export default function UploadScreen() {
       }, 800);
     } catch (error: any) {
       console.error('❌ Error creating post:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+
       setUploading(false);
       setUploadProgress('');
       setMode('preview');
 
-      Alert.alert(
-        'Failed to Create Post',
-        error.message || 'Something went wrong. Please try again.',
-        [{ text: 'OK' }]
-      );
+      // Determine user-friendly error message based on error type
+      let errorTitle = 'Failed to Create Post';
+      let errorMessage = 'Something went wrong. Please try again.';
+
+      if (error.message) {
+        const msg = error.message.toLowerCase();
+
+        if (msg.includes('network') || msg.includes('fetch') || msg.includes('timeout')) {
+          errorTitle = 'Network Error';
+          errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+          console.error('🌐 Network connectivity issue detected');
+        } else if (msg.includes('comparison_enabled') || msg.includes('column')) {
+          errorTitle = 'Database Error';
+          errorMessage = 'A database migration needs to be run. Please contact support or run the latest migrations.';
+          console.error('🗄️ Database schema mismatch - missing columns');
+        } else if (msg.includes('upload image') || msg.includes('storage')) {
+          errorTitle = 'Image Upload Failed';
+          errorMessage = 'Failed to upload your image. Please try a different image or check your connection.';
+          console.error('📤 Image upload to storage failed');
+        } else if (msg.includes('authentication') || msg.includes('unauthorized')) {
+          errorTitle = 'Authentication Error';
+          errorMessage = 'Your session has expired. Please log out and log back in.';
+          console.error('🔐 Authentication issue detected');
+        } else if (msg.includes('verification')) {
+          errorTitle = 'Verification Error';
+          errorMessage = 'AI verification failed, but your post was created successfully without verification.';
+          console.error('🔍 Verification service issue');
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      Alert.alert(errorTitle, errorMessage, [{ text: 'OK' }]);
     }
   };
 

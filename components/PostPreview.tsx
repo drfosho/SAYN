@@ -181,38 +181,40 @@ export const PostPreview: React.FC<PostPreviewProps> = ({
           <Text style={styles.charCount}>{caption.length} / 500</Text>
         </View>
 
-        {/* AI Verification Toggle */}
-        <View style={styles.verificationSection}>
-          <View style={styles.verificationInfo}>
-            <View style={styles.verificationHeader}>
-              <Text style={styles.verificationLabel}>VERIFY THIS IMAGE</Text>
-              <View style={styles.bonusBadge}>
-                <Text style={styles.bonusText}>+50% XP</Text>
+        {/* AI Verification Toggle - Only show for image posts */}
+        {hasImage && (
+          <View style={styles.verificationSection}>
+            <View style={styles.verificationInfo}>
+              <View style={styles.verificationHeader}>
+                <Text style={styles.verificationLabel}>VERIFY THIS IMAGE</Text>
+                <View style={styles.bonusBadge}>
+                  <Text style={styles.bonusText}>+50% XP</Text>
+                </View>
               </View>
+              <Text style={styles.verificationSubtext}>
+                AI checks for editing, filters, or manipulation
+              </Text>
             </View>
-            <Text style={styles.verificationSubtext}>
-              AI checks for editing, filters, or manipulation
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => setRequestVerification(!requestVerification)}
-            style={styles.toggleContainer}
-          >
-            <View
-              style={[
-                styles.toggleTrack,
-                requestVerification && styles.toggleTrackActive,
-              ]}
+            <Pressable
+              onPress={() => setRequestVerification(!requestVerification)}
+              style={styles.toggleContainer}
             >
               <View
                 style={[
-                  styles.toggleThumb,
-                  requestVerification && styles.toggleThumbActive,
+                  styles.toggleTrack,
+                  requestVerification && styles.toggleTrackActive,
                 ]}
-              />
-            </View>
-          </Pressable>
-        </View>
+              >
+                <View
+                  style={[
+                    styles.toggleThumb,
+                    requestVerification && styles.toggleThumbActive,
+                  ]}
+                />
+              </View>
+            </Pressable>
+          </View>
+        )}
 
         {/* Progress Comparison Button */}
         {isProgressUpdate && hasImage && (
