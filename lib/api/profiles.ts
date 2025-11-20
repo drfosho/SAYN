@@ -214,3 +214,93 @@ export async function getVerifiedCoaches(): Promise<ApiResponse<Profile[]>> {
     return { data: null, error: error.message };
   }
 }
+
+/**
+ * Check if a username is available
+ */
+export async function checkUsernameAvailability(
+  username: string,
+  currentUserId: string
+): Promise<ApiResponse<boolean>> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username.toLowerCase())
+      .neq('id', currentUserId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    // If data exists, username is taken. If null, username is available
+    return { data: !data, error: null };
+  } catch (error: any) {
+    console.error('Check username availability error:', error);
+    return { data: null, error: error.message };
+  }
+}
+
+/**
+ * Upload avatar image to Supabase storage
+ */
+export async function uploadAvatar(
+  userId: string,
+  imageUri: string
+): Promise<ApiResponse<string>> {
+  try {
+    // Convert image URI to blob
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+
+    // Create file path: avatars/{userId}/avatar_{timestamp}.jpg
+    const timestamp = Date.now();
+    const filePath = `${userId}/avatar_${timestamp}.jpg`;
+
+    // Upload to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    return { data: urlData.publicUrl, error: null };
+  } catch (error: any) {
+    console.error('Upload avatar error:', error);
+    return { data: null, error: error.message };
+  }
+}
+
+/**
+ * Delete avatar from Supabase storage
+ */
+export async function deleteAvatar(avatarUrl: string): Promise<ApiResponse<boolean>> {
+  try {
+    // Extract file path from URL
+    // URL format: https://{project}.supabase.co/storage/v1/object/public/avatars/{userId}/avatar_{timestamp}.jpg
+    const urlParts = avatarUrl.split('/avatars/');
+    if (urlParts.length < 2) {
+      throw new Error('Invalid avatar URL format');
+    }
+    const filePath = urlParts[1];
+
+    // Delete from storage
+    const { error } = await supabase.storage
+      .from('avatars')
+      .remove([filePath]);
+
+    if (error) throw error;
+
+    return { data: true, error: null };
+  } catch (error: any) {
+    console.error('Delete avatar error:', error);
+    return { data: null, error: error.message };
+  }
+}

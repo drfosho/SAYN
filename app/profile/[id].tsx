@@ -117,7 +117,7 @@ export default function ProfileScreen() {
   };
 
   const handleEdit = () => {
-    console.log('Edit profile');
+    router.push('/edit-profile');
   };
 
   const handleSettings = () => {

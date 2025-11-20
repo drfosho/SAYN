@@ -76,6 +76,7 @@ export interface ApiResponse<T> {
 
 // Update types
 export interface ProfileUpdate {
+  username?: string;
   display_name?: string;
   bio?: string;
   avatar_url?: string;
