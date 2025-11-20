@@ -9,6 +9,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { RankDefinition } from '@/constants/ranks';
+import { layout, fontSize, fontWeight } from '@/constants';
 
 interface RankBadgeProps {
   rank: RankDefinition;
@@ -91,7 +92,15 @@ export const RankBadge: React.FC<RankBadgeProps> = ({
       >
         <View style={styles.content}>
           <Text style={[styles.icon, currentSize.icon]}>{rank.icon}</Text>
-          {showLabel && <Text style={[styles.text, currentSize.text]}>{rank.name}</Text>}
+          {showLabel && (
+            <Text
+              style={[styles.text, currentSize.text]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {rank.name}
+            </Text>
+          )}
         </View>
       </LinearGradient>
     </View>
@@ -101,20 +110,23 @@ export const RankBadge: React.FC<RankBadgeProps> = ({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
-    borderRadius: 10,
+    borderRadius: layout.badgeRadius,
     overflow: 'visible',
   },
   containerSmall: {
-    height: 24,
+    height: layout.badgeHeight - 2,
     minWidth: 80,
+    maxWidth: layout.badgeMaxWidth,
   },
   containerMedium: {
-    height: 32,
+    height: layout.badgeHeight + 6,
     minWidth: 110,
+    maxWidth: layout.badgeMaxWidth,
   },
   containerLarge: {
-    height: 44,
+    height: layout.badgeHeight + 18,
     minWidth: 150,
+    maxWidth: 160,
   },
   glow: {
     position: 'absolute',
@@ -147,35 +159,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    flex: 1,
   },
   icon: {
-    fontSize: 14,
+    fontSize: fontSize.lg,
   },
   iconSmall: {
-    fontSize: 12,
+    fontSize: fontSize.base,
   },
   iconMedium: {
-    fontSize: 14,
+    fontSize: fontSize.lg,
   },
   iconLarge: {
-    fontSize: 18,
+    fontSize: fontSize['3xl'],
   },
   text: {
-    fontWeight: '900',
+    fontWeight: fontWeight.black,
     color: '#ffffff',
     letterSpacing: 1.5,
     textShadowColor: '#000000',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 0,
+    textTransform: 'uppercase',
+    numberOfLines: 1,
   },
   textSmall: {
-    fontSize: 9,
+    fontSize: fontSize.xs,
   },
   textMedium: {
-    fontSize: 11,
+    fontSize: fontSize.sm,
   },
   textLarge: {
-    fontSize: 14,
+    fontSize: fontSize.lg,
   },
 });

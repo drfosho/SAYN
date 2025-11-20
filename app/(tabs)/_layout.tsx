@@ -1,168 +1,120 @@
-import { Tabs, router } from 'expo-router';
+import { Tabs } from 'expo-router';
 import React from 'react';
-import { Text, StyleSheet, Pressable, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { HapticTab } from '@/components/haptic-tab';
-import NotificationBell from '@/components/notifications/NotificationBell';
-
-function TabIcon({ emoji, color }: { emoji: string; color: string }) {
-  return <Text style={[styles.tabIcon, { color }]}>{emoji}</Text>;
-}
-
-// Custom center upload button
-function UploadButton() {
-  return (
-    <Pressable
-      onPress={() => router.push('/upload')}
-      style={styles.uploadButtonWrapper}
-    >
-      <LinearGradient
-        colors={['#00e5ff', '#ff0080']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.uploadButton}
-      >
-        <Text style={styles.uploadButtonIcon}>➕</Text>
-      </LinearGradient>
-      <View style={styles.uploadButtonGlow} />
-    </Pressable>
-  );
-}
+import { Zap, Trophy, PlusCircle, Search, User } from 'lucide-react-native';
+import { layout, fontSize, fontWeight } from '@/constants';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#00e5ff', // Updated to new electric cyan
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarActiveTintColor: '#00d4ff',
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
         headerShown: false,
-        tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#050814', // Darker background
-          borderTopColor: 'rgba(0, 229, 255, 0.3)', // Stronger cyan
-          borderTopWidth: 2,
-          height: 70,
-          paddingBottom: 10,
-          paddingTop: 10,
+          backgroundColor: '#0a0e27',
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255,255,255,0.1)',
+          height: layout.tabBarHeight,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '700', // Bolder weight
-          letterSpacing: 0.5,
+          fontSize: fontSize.sm,
+          fontWeight: fontWeight.semibold,
+          marginTop: 4,
         },
-      }}>
+        tabBarItemStyle: {
+          paddingVertical: 8,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Feed',
-          tabBarIcon: ({ color }) => <TabIcon emoji="⚡" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Leaderboard',
-          tabBarIcon: ({ color }) => <TabIcon emoji="🏆" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="create"
-        options={{
-          title: '',
-          tabBarIcon: () => <UploadButton />,
-          tabBarButton: (props) => (
-            <Pressable
-              {...props}
-              onPress={() => router.push('/upload')}
-              style={styles.createTabButton}
+          tabBarIcon: ({ focused, color }) => (
+            <Zap
+              size={layout.tabIconSize}
+              color={color}
+              strokeWidth={2.5}
+              fill={focused ? color : 'none'}
             />
           ),
         }}
       />
+
       <Tabs.Screen
-        name="notifications"
+        name="explore"
         options={{
-          title: 'Alerts',
-          tabBarIcon: () => <NotificationBell />,
+          title: 'Ranks',
+          tabBarIcon: ({ focused, color }) => (
+            <Trophy
+              size={layout.tabIconSize}
+              color={color}
+              strokeWidth={2.5}
+              fill={focused ? color : 'none'}
+            />
+          ),
         }}
       />
+
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: 'Create',
+          tabBarIcon: ({ focused, color }) => (
+            <PlusCircle
+              size={layout.tabIconSizeCenter}
+              color={color}
+              strokeWidth={2.5}
+              fill={focused ? color : 'none'}
+            />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color }) => <TabIcon emoji="🔍" color={color} />,
+          tabBarIcon: ({ focused, color }) => (
+            <Search
+              size={layout.tabIconSize}
+              color={color}
+              strokeWidth={2.5}
+            />
+          ),
         }}
       />
+
+      {/* Hide other tabs but keep them mounted */}
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+
       <Tabs.Screen
         name="community"
         options={{
-          title: 'Coaches',
-          tabBarIcon: ({ color }) => <TabIcon emoji="🏅" color={color} />,
-          href: '/coaches',
+          href: null, // Hide from tab bar
         }}
       />
+
       <Tabs.Screen
         name="ranks"
         options={{
-          title: 'Ranks',
-          tabBarIcon: ({ color }) => <TabIcon emoji="👑" color={color} />,
+          href: null, // Hide from tab bar
+        }}
+      />
+
+      <Tabs.Screen
+        name="achievements"
+        options={{
+          href: null, // Hide from tab bar
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  tabIcon: {
-    fontSize: 28,
-  },
-  createTabButton: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uploadButtonWrapper: {
-    position: 'relative',
-    marginTop: -20, // Elevate above tab bar
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    overflow: 'visible',
-  },
-  uploadButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 5,
-    borderColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 20,
-  },
-  uploadButtonIcon: {
-    fontSize: 32,
-    color: '#ffffff',
-    textShadowColor: '#000000',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 0,
-  },
-  uploadButtonGlow: {
-    position: 'absolute',
-    top: -6,
-    left: -6,
-    right: -6,
-    bottom: -6,
-    borderRadius: 38,
-    backgroundColor: '#00e5ff',
-    opacity: 0.4,
-    zIndex: -1,
-    shadowColor: '#00e5ff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-  },
-});
