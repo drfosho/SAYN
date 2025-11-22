@@ -347,9 +347,18 @@ export async function powerUpComment(
     }
 
     // Increment the power count on the comment
+    // First get current count
+    const { data: currentComment } = await supabase
+      .from('comments')
+      .select('power_count')
+      .eq('id', commentId)
+      .single();
+
+    const newCount = (currentComment?.power_count || 0) + 1;
+
     const { error: updateError } = await supabase
       .from('comments')
-      .update({ power_count: supabase.rpc('increment') })
+      .update({ power_count: newCount })
       .eq('id', commentId);
 
     if (updateError) throw updateError;
@@ -424,9 +433,18 @@ export async function unPowerUpComment(
     if (error) throw error;
 
     // Decrement the power count on the comment
+    // First get current count
+    const { data: currentComment } = await supabase
+      .from('comments')
+      .select('power_count')
+      .eq('id', commentId)
+      .single();
+
+    const newCount = Math.max((currentComment?.power_count || 0) - 1, 0);
+
     const { error: updateError } = await supabase
       .from('comments')
-      .update({ power_count: supabase.rpc('decrement') })
+      .update({ power_count: newCount })
       .eq('id', commentId);
 
     if (updateError) throw updateError;
