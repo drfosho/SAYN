@@ -103,14 +103,18 @@ export const CommentInput: React.FC<CommentInputProps> = ({
         {/* Input row */}
         <View style={styles.inputRow}>
           {/* User avatar */}
-          <Image
-            source={
-              currentUser?.avatar_url
-                ? { uri: currentUser.avatar_url }
-                : require('@/assets/images/default-avatar.png')
-            }
-            style={styles.avatar}
-          />
+          {currentUser?.avatar_url ? (
+            <Image
+              source={{ uri: currentUser.avatar_url }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>
+                {currentUser?.username?.charAt(0).toUpperCase() || '?'}
+              </Text>
+            </View>
+          )}
 
           {/* Text input */}
           <View style={styles.inputContainer}>
@@ -193,6 +197,16 @@ const styles = StyleSheet.create({
     height: layout.avatarXs,
     borderRadius: layout.avatarXs / 2,
     backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#00d4ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitial: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: '#0a0e27',
   },
   inputContainer: {
     flex: 1,

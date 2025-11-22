@@ -57,14 +57,18 @@ export const CommentCard: React.FC<CommentCardProps> = ({
       {/* Avatar and content */}
       <View style={styles.row}>
         {/* Avatar */}
-        <Image
-          source={
-            profile?.avatar_url
-              ? { uri: profile.avatar_url }
-              : require('@/assets/images/default-avatar.png')
-          }
-          style={styles.avatar}
-        />
+        {profile?.avatar_url ? (
+          <Image
+            source={{ uri: profile.avatar_url }}
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Text style={styles.avatarInitial}>
+              {profile?.username?.charAt(0).toUpperCase() || '?'}
+            </Text>
+          </View>
+        )}
 
         {/* Comment content */}
         <View style={styles.content}>
@@ -158,6 +162,16 @@ const styles = StyleSheet.create({
     height: layout.avatarXs,
     borderRadius: layout.avatarXs / 2,
     backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#00d4ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitial: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: '#0a0e27',
   },
   content: {
     flex: 1,
