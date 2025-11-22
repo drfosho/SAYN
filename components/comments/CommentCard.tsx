@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Zap, MessageCircle, Edit2, Trash2 } from 'lucide-react-native';
 import { Comment } from '@/lib/api/types';
 import { RankBadge } from '../RankBadge';
-import { getRankForLevel } from '@/constants/ranks';
+import { getRankFromLevel } from '@/utils/getRankFromLevel';
 import { layout, spacing, fontSize, fontWeight } from '@/constants';
 
 interface CommentCardProps {
@@ -34,7 +34,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
 }) => {
   const isOwnComment = comment.user_id === currentUserId;
   const profile = comment.profiles;
-  const rank = profile ? getRankForLevel(profile.level) : null;
+  const rank = profile ? getRankFromLevel(profile.level) : null;
 
   // Format time ago
   const timeAgo = formatDistanceToNow(new Date(comment.created_at), { addSuffix: false });
