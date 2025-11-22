@@ -277,7 +277,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
         >
           <MessageCircle size={18} color="rgba(255,255,255,0.6)" strokeWidth={2} />
           <Text style={styles.commentsText}>
-            {post.commentCount === 0
+            {!post.commentCount || post.commentCount === 0
               ? 'Be the first to comment'
               : `${post.commentCount} ${post.commentCount === 1 ? 'comment' : 'comments'}`}
           </Text>

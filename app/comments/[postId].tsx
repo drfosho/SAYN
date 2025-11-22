@@ -250,6 +250,16 @@ export default function CommentsScreen() {
           return c;
         })
       );
+
+      // Show success feedback when powering up (not un-powering)
+      if (data?.isPoweredUp) {
+        Alert.alert(
+          '⚡ Powered Up!',
+          `You powered up ${comment.profiles?.username || 'this'}'s comment`,
+          [{ text: 'OK' }],
+          { cancelable: true }
+        );
+      }
     } catch (error) {
       console.error('Power up comment error:', error);
       Alert.alert('Error', 'Failed to power up comment');
