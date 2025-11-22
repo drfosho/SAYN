@@ -1,5 +1,6 @@
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
 import { Zap, Trophy, PlusCircle, Search, User } from 'lucide-react-native';
 import { layout, fontSize, fontWeight } from '@/constants';
 
@@ -62,12 +63,23 @@ export default function TabLayout() {
         name="create"
         options={{
           title: 'Create',
+          href: null, // Don't navigate to this tab
           tabBarIcon: ({ focused, color }) => (
             <PlusCircle
               size={layout.tabIconSizeCenter}
               color={color}
               strokeWidth={2.5}
               fill={focused ? color : 'none'}
+            />
+          ),
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              {...props}
+              onPress={(e) => {
+                e?.preventDefault();
+                // Navigate to upload screen without making this tab active
+                router.push('/upload');
+              }}
             />
           ),
         }}

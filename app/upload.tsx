@@ -296,9 +296,9 @@ export default function UploadScreen() {
       successOpacity.value = 0.15;
       successOpacity.value = withTiming(0, { duration: 150 });
 
-      // Navigate back after animation
+      // Navigate back to feed after animation
       setTimeout(() => {
-        router.back();
+        router.replace('/(tabs)');
         // Trigger refresh of feed (handled by screen focus)
       }, 800);
     } catch (error: any) {
@@ -354,7 +354,8 @@ export default function UploadScreen() {
       setMode('select');
       setCapturedPhoto(null);
     } else {
-      router.back();
+      // Navigate to feed tab, not back to create tab
+      router.replace('/(tabs)');
     }
   };
 
@@ -430,7 +431,7 @@ export default function UploadScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.closeButton}>
+          <Pressable onPress={handleCancel} style={styles.closeButton}>
             <Text style={styles.closeText}>✕</Text>
           </Pressable>
           <Text style={styles.headerTitle}>CREATE POST</Text>
