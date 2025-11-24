@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, FlatList, SafeAreaView, Pressable, Image, Activ
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { PostCard, Post } from '@/components/PostCard';
+import { TextPostCard, TextPost } from '@/components/TextPostCard';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPosts } from '@/lib/api/posts';
@@ -49,6 +50,7 @@ export default function SAYNFeedScreen() {
         isPoweredUp: dbPost.user_has_powered || false,
         badge: dbPost.profiles?.badge_type || undefined,
         postType: dbPost.post_type || undefined,
+        commentCount: dbPost.comment_count || 0,
       }));
 
       setPosts(mappedPosts);
@@ -131,9 +133,25 @@ export default function SAYNFeedScreen() {
     </View>
   );
 
-  const renderPost = ({ item, index }: { item: Post; index: number }) => (
-    <PostCard post={item} index={index} />
-  );
+  const renderPost = ({ item, index }: { item: Post; index: number }) => {
+    // Text posts don't have images - render TextPostCard
+    if (!item.imageUrl) {
+      const textPost: TextPost = {
+        id: item.id,
+        username: item.username,
+        level: item.level,
+        avatarUrl: item.avatarUrl,
+        content: item.content,
+        powerLevel: item.powerLevel,
+        isPoweredUp: item.isPoweredUp,
+        commentCount: item.commentCount,
+      };
+      return <TextPostCard post={textPost} index={index} />;
+    }
+
+    // Image posts - render PostCard
+    return <PostCard post={item} index={index} />;
+  };
 
   // Loading state
   if (authLoading || loading) {

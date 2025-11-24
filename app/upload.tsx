@@ -61,8 +61,8 @@ export default function UploadScreen() {
   };
 
   const handleTextPost = () => {
-    setCapturedPhoto(null);
-    setMode('postType'); // Go to post type selection first
+    // Navigate to dedicated text post screen
+    router.push('/create-text-post');
   };
 
   const handlePhotoCapture = (photo: CapturedPhoto) => {
