@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { PostCard, Post } from '@/components/PostCard';
 import { TextPostCard, TextPost } from '@/components/TextPostCard';
+import NotificationBell from '@/components/notifications/NotificationBell';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPosts } from '@/lib/api/posts';
@@ -103,33 +104,43 @@ export default function SAYNFeedScreen() {
           </View>
         </LinearGradient>
       </View>
-      <Pressable
-        style={styles.profileButton}
-        onPress={() => {
-          if (profile?.id) {
-            router.push(`/profile/${profile.id}`);
-          }
-        }}
-      >
-        {profile?.avatar_url ? (
-          <Image
-            source={{ uri: profile.avatar_url }}
-            style={styles.profileImage}
-          />
-        ) : (
-          <View style={styles.profileIcon}>
-            <Text style={styles.profileEmoji}>
-              {profile?.username?.charAt(0)?.toUpperCase() || '👤'}
-            </Text>
-          </View>
-        )}
-        {/* User level badge */}
-        {profile?.level && (
-          <View style={styles.powerBadge}>
-            <Text style={styles.powerBadgeText}>{profile.level}</Text>
-          </View>
-        )}
-      </Pressable>
+      <View style={styles.headerRight}>
+        {/* Notification Bell */}
+        <Pressable
+          style={styles.notificationButton}
+          onPress={() => router.push('/(tabs)/notifications')}
+        >
+          <NotificationBell />
+        </Pressable>
+        {/* Profile Button */}
+        <Pressable
+          style={styles.profileButton}
+          onPress={() => {
+            if (profile?.id) {
+              router.push(`/profile/${profile.id}`);
+            }
+          }}
+        >
+          {profile?.avatar_url ? (
+            <Image
+              source={{ uri: profile.avatar_url }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profileIcon}>
+              <Text style={styles.profileEmoji}>
+                {profile?.username?.charAt(0)?.toUpperCase() || '👤'}
+              </Text>
+            </View>
+          )}
+          {/* User level badge */}
+          {profile?.level && (
+            <View style={styles.powerBadge}>
+              <Text style={styles.powerBadgeText}>{profile.level}</Text>
+            </View>
+          )}
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -286,6 +297,15 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderBottomWidth: 2,
     borderBottomColor: 'rgba(0, 229, 255, 0.3)',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  notificationButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoContainer: {
     position: 'relative',

@@ -1,8 +1,10 @@
 import { supabase } from '../supabase';
 import { Follow, ApiResponse } from './types';
+import { createNotification } from './notifications';
 
 /**
  * Follow a user
+ * Creates a notification for the followed user
  */
 export async function followUser(
   followerId: string,
@@ -24,6 +26,28 @@ export async function followUser(
       .single();
 
     if (error) throw error;
+
+    // Create notification for the followed user
+    try {
+      const { data: follower } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', followerId)
+        .single();
+
+      await createNotification({
+        user_id: followingId,
+        type: 'follow',
+        title: 'New Follower!',
+        message: `${follower?.username || 'Someone'} started following you`,
+        from_user_id: followerId,
+        related_post_id: undefined, // No related post for follows
+      });
+      console.log('Follow notification created for user:', followingId);
+    } catch (notifError) {
+      console.warn('Failed to create follow notification:', notifError);
+      // Don't fail the follow if notification fails
+    }
 
     return { data, error: null };
   } catch (error: any) {

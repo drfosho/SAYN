@@ -1,9 +1,11 @@
 import { supabase } from '../supabase';
 import { PowerUp, Profile, ApiResponse } from './types';
 import { incrementPowerCount, decrementPowerCount } from './posts';
+import { createNotification } from './notifications';
 
 /**
  * Power up a post
+ * Creates a notification for the post owner
  */
 export async function powerUpPost(
   userId: string,
@@ -30,6 +32,38 @@ export async function powerUpPost(
 
     // Increment the power count on the post
     await incrementPowerCount(postId);
+
+    // Create notification for post owner
+    try {
+      // Get post owner and current user info
+      const { data: post } = await supabase
+        .from('posts')
+        .select('user_id')
+        .eq('id', postId)
+        .single();
+
+      const { data: currentUser } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', userId)
+        .single();
+
+      // Only notify if not self-power up
+      if (post && post.user_id !== userId) {
+        await createNotification({
+          user_id: post.user_id,
+          type: 'power_up',
+          title: 'New Power Up!',
+          message: `${currentUser?.username || 'Someone'} powered up your post`,
+          from_user_id: userId,
+          related_post_id: postId,
+        });
+        console.log('Power up notification created for user:', post.user_id);
+      }
+    } catch (notifError) {
+      console.warn('Failed to create power up notification:', notifError);
+      // Don't fail the power up if notification fails
+    }
 
     return { data, error: null };
   } catch (error: any) {
