@@ -37,6 +37,7 @@ export interface Post {
   comparison_enabled: boolean;
   comparison_previous_post_id: string | null;
   comparison_feedback: string | null;
+  text_category: string | null;
   power_count: number;
   comment_count: number;
   created_at: string;
@@ -95,6 +96,7 @@ export interface PostCreate {
   comparison_enabled?: boolean;
   comparison_previous_post_id?: string;
   comparison_feedback?: string;
+  text_category?: string;
 }
 
 export interface PostUpdate {

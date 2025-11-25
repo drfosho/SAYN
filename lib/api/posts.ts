@@ -142,16 +142,55 @@ export async function getPost(postId: string, currentUserId?: string): Promise<A
 
 /**
  * Create a new post
+ * Builds the insert data object conditionally to handle missing columns gracefully
  */
 export async function createPost(postData: PostCreate): Promise<ApiResponse<Post>> {
   try {
+    // Start with required fields only
+    const insertData: Record<string, any> = {
+      user_id: postData.user_id,
+      power_count: 0,
+      comment_count: 0,
+    };
+
+    // Add optional fields only if they are provided
+    if (postData.image_url !== undefined) {
+      insertData.image_url = postData.image_url;
+    }
+
+    if (postData.caption !== undefined) {
+      insertData.caption = postData.caption;
+    }
+
+    if (postData.post_type !== undefined) {
+      insertData.post_type = postData.post_type;
+    }
+
+    if (postData.verification_requested !== undefined) {
+      insertData.verification_requested = postData.verification_requested;
+    }
+
+    // Only add comparison fields if comparison is enabled
+    if (postData.comparison_enabled) {
+      insertData.comparison_enabled = true;
+      if (postData.comparison_previous_post_id) {
+        insertData.comparison_previous_post_id = postData.comparison_previous_post_id;
+      }
+      if (postData.comparison_feedback) {
+        insertData.comparison_feedback = postData.comparison_feedback;
+      }
+    }
+
+    // Add text post category if provided
+    if (postData.text_category) {
+      insertData.text_category = postData.text_category;
+    }
+
+    console.log('📝 Creating post with data:', JSON.stringify(insertData, null, 2));
+
     const { data, error } = await supabase
       .from('posts')
-      .insert({
-        ...postData,
-        power_count: 0,
-        comment_count: 0,
-      })
+      .insert(insertData)
       .select(`
         *,
         profiles (
@@ -165,7 +204,10 @@ export async function createPost(postData: PostCreate): Promise<ApiResponse<Post
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Database insert error:', error);
+      throw error;
+    }
 
     return { data, error: null };
   } catch (error: any) {
@@ -176,18 +218,56 @@ export async function createPost(postData: PostCreate): Promise<ApiResponse<Post
 
 /**
  * Update a post
+ * Builds the update data object conditionally to handle missing columns gracefully
  */
 export async function updatePost(
   postId: string,
   updates: PostUpdate
 ): Promise<ApiResponse<Post>> {
   try {
+    // Build update object with only provided fields
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    // Only add fields that are explicitly provided
+    if (updates.caption !== undefined) {
+      updateData.caption = updates.caption;
+    }
+
+    if (updates.verification_requested !== undefined) {
+      updateData.verification_requested = updates.verification_requested;
+    }
+
+    if (updates.verification_status !== undefined) {
+      updateData.verification_status = updates.verification_status;
+    }
+
+    if (updates.verification_confidence !== undefined) {
+      updateData.verification_confidence = updates.verification_confidence;
+    }
+
+    if (updates.verification_details !== undefined) {
+      updateData.verification_details = updates.verification_details;
+    }
+
+    if (updates.comparison_enabled !== undefined) {
+      updateData.comparison_enabled = updates.comparison_enabled;
+    }
+
+    if (updates.comparison_previous_post_id !== undefined) {
+      updateData.comparison_previous_post_id = updates.comparison_previous_post_id;
+    }
+
+    if (updates.comparison_feedback !== undefined) {
+      updateData.comparison_feedback = updates.comparison_feedback;
+    }
+
+    console.log('📝 Updating post with data:', JSON.stringify(updateData, null, 2));
+
     const { data, error } = await supabase
       .from('posts')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', postId)
       .select(`
         *,
@@ -202,7 +282,10 @@ export async function updatePost(
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Database update error:', error);
+      throw error;
+    }
 
     return { data, error: null };
   } catch (error: any) {
