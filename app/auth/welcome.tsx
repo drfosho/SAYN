@@ -10,6 +10,7 @@ import Animated, {
   withSequence,
   Easing,
 } from 'react-native-reanimated';
+import { AnimatedSAYNLogo, SAYNText } from '@/components/brand';
 
 const { width, height } = Dimensions.get('window');
 
@@ -59,8 +60,10 @@ export default function WelcomeScreen() {
 
       {/* Logo with glow */}
       <View style={styles.logoContainer}>
-        <Animated.View style={[styles.glow, glowStyle]} />
-        <Text style={styles.logo}>SAYN</Text>
+        <AnimatedSAYNLogo size="xlarge" animationType="entrance" />
+        <View style={styles.textContainer}>
+          <SAYNText size="large" withGlow={true} />
+        </View>
         <LinearGradient
           colors={['#00e5ff', '#ff00ff', '#ffa500']}
           start={{ x: 0, y: 0 }}
@@ -131,26 +134,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 60,
   },
-  glow: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: '#00e5ff',
-    shadowColor: '#00e5ff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 50,
-    elevation: 10,
-  },
-  logo: {
-    fontSize: 72,
-    fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: 8,
-    textShadowColor: '#00e5ff',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
+  textContainer: {
+    marginTop: 20,
     marginBottom: 10,
   },
   logoUnderline: {

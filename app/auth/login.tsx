@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { login } from '@/lib/supabase-auth';
+import { SAYNLogo } from '@/components/brand';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -74,6 +75,11 @@ export default function LoginScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#00e5ff" />
           </Pressable>
+
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <SAYNLogo size="medium" withGlow={true} />
+          </View>
 
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>
@@ -193,6 +199,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     left: 24,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
   },
   title: {
     fontSize: 32,

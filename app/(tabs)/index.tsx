@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { PostCard, Post } from '@/components/PostCard';
 import { TextPostCard, TextPost } from '@/components/TextPostCard';
+import { SAYNLogo } from '@/components/brand';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,18 +92,7 @@ export default function SAYNFeedScreen() {
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.logoContainer}>
-        {/* Angular container with metallic gradient matching logo */}
-        <LinearGradient
-          colors={['#00e5ff', '#00b8d4', '#ff6b9d', '#ff4081']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.titleGradient}
-        >
-          {/* Inner gradient for metallic depth */}
-          <View style={styles.titleInner}>
-            <Text style={styles.title}>SAYN</Text>
-          </View>
-        </LinearGradient>
+        <SAYNLogo size="small" withGlow={false} />
       </View>
       <View style={styles.headerRight}>
         {/* Notification Bell */}
@@ -308,37 +298,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoContainer: {
-    position: 'relative',
-    overflow: 'visible',
-  },
-  titleGradient: {
-    borderRadius: 8,
-    borderWidth: 4,
-    borderColor: '#000000',
-    shadowColor: '#00e5ff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 15,
-    elevation: 20,
-    // Angular, slanted appearance like the logo
-    transform: [{ skewX: '-5deg' }],
-  },
-  titleInner: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  title: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: 8,
-    // Multiple text shadows for metallic depth effect
-    textShadowColor: '#000000',
-    textShadowOffset: { width: 3, height: 3 },
-    textShadowRadius: 1,
-    // Angular, italic style matching the logo
-    fontStyle: 'italic',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileButton: {
     position: 'relative',

@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { signUp, validateEmail, validatePassword } from '@/lib/supabase-auth';
+import { SAYNLogo } from '@/components/brand';
 
 export default function SignUpScreen() {
   const [fullName, setFullName] = useState('');
@@ -153,6 +154,11 @@ export default function SignUpScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#00e5ff" />
           </Pressable>
+
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <SAYNLogo size="medium" withGlow={true} />
+          </View>
 
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>
@@ -406,6 +412,10 @@ const styles = StyleSheet.create({
   backButton: {
     marginBottom: 20,
     alignSelf: 'flex-start',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
   },
   title: {
     fontSize: 32,
