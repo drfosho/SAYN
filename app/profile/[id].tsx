@@ -9,7 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { ProfileHeader } from '@/components/ProfileHeader';
@@ -19,6 +19,7 @@ import { PostsGrid, GridPost } from '@/components/PostsGrid';
 import { FollowButton } from '@/components/FollowButton';
 import { BadgeInfoModal } from '@/components/badges/BadgeInfoModal';
 import { ReportButton } from '@/components/ReportButton';
+import { ProfileBadges } from '@/components/profile/ProfileBadges';
 import { useFollow } from '@/hooks/useFollow';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProfile } from '@/lib/api/profiles';
@@ -178,14 +179,29 @@ export default function ProfileScreen() {
     : 0;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Profile Header */}
-        <ProfileHeader
-          avatarUrl={profile.avatar_url || 'https://via.placeholder.com/150'}
-          username={profile.username}
-          level={profile.level}
+    <>
+      <Stack.Screen
+        options={{
+          title: profile?.username ? `@${profile.username}` : 'Profile',
+          headerShown: true,
+          headerBackTitle: '',
+          headerStyle: {
+            backgroundColor: '#050814',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="light" />
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Profile Header */}
+          <ProfileHeader
+            avatarUrl={profile.avatar_url || 'https://via.placeholder.com/150'}
+            username={profile.username}
+            level={profile.level}
           bio={profile.bio || ''}
           location={profile.location || ''}
           badge={profile.badge_type || undefined}
@@ -247,11 +263,16 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Achievements - TODO: Fetch from database when achievements are implemented */}
-        {/* <AchievementScroll
-          achievements={[]}
-          onAchievementPress={(achievement) => console.log('Tapped:', achievement.name)}
-        /> */}
+        {/* Badges & Achievements */}
+        <ProfileBadges
+          level={profile.level}
+          xp={profile.xp}
+          badgeType={profile.badge_type}
+          badgeVerified={profile.badge_verified}
+          isVerifiedCoach={profile.is_verified_coach}
+          postStreak={profile.post_streak}
+          totalPosts={rawPosts.length}
+        />
 
         {/* Posts Grid */}
         <PostsGrid
@@ -304,6 +325,7 @@ export default function ProfileScreen() {
       {/* Badge Info Modal */}
       <BadgeInfoModal visible={showBadgeInfo} onClose={() => setShowBadgeInfo(false)} />
     </SafeAreaView>
+    </>
   );
 }
 

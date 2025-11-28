@@ -81,7 +81,19 @@ export default function RootLayout() {
     <AuthProvider>
       <ThemeProvider value={SAYNTheme}>
         <View style={styles.container}>
-          <Stack>
+          <Stack
+            screenOptions={{
+              headerBackTitle: 'Back',
+              headerBackTitleVisible: false,
+              headerStyle: {
+                backgroundColor: '#050814',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          >
             {/* Auth Screens */}
             <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
             <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
@@ -96,7 +108,73 @@ export default function RootLayout() {
 
             {/* Main App */}
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="settings" options={{ headerShown: false }} />
+
+            {/* Upload & Post Creation */}
+            <Stack.Screen
+              name="upload"
+              options={{
+                headerShown: false,
+                title: 'Create Post',
+              }}
+            />
+            <Stack.Screen
+              name="create-text-post"
+              options={{
+                headerShown: false,
+                title: 'Share Your Thoughts',
+              }}
+            />
+
+            {/* Comments */}
+            <Stack.Screen
+              name="comments/[postId]"
+              options={{
+                headerShown: false,
+                presentation: 'modal',
+                title: 'Comments',
+              }}
+            />
+
+            {/* Profile */}
+            <Stack.Screen
+              name="profile/[id]"
+              options={{
+                title: 'Profile',
+                headerShown: true,
+                headerBackTitle: '',
+              }}
+            />
+
+            {/* Settings & Other Screens */}
+            <Stack.Screen
+              name="settings"
+              options={{
+                headerShown: false,
+                title: 'Settings',
+              }}
+            />
+            <Stack.Screen
+              name="edit-profile"
+              options={{
+                title: 'Edit Profile',
+                headerShown: true,
+                headerBackTitle: '',
+              }}
+            />
+            <Stack.Screen
+              name="badge-application"
+              options={{
+                headerShown: false,
+                title: 'Badge Application',
+              }}
+            />
+            <Stack.Screen
+              name="coach-application"
+              options={{
+                headerShown: false,
+                title: 'Coach Application',
+              }}
+            />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
           <StatusBar style="light" />
