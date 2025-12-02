@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Notification } from '@/lib/api/notifications';
 import { formatDistanceToNow } from 'date-fns';
+import Avatar from '../Avatar';
 
 interface NotificationCardProps {
   notification: Notification;
@@ -77,10 +78,12 @@ export default function NotificationCard({ notification, onPress }: Notification
 
       {/* Icon or Avatar */}
       <View style={styles.iconContainer}>
-        {notification.actor?.avatar_url ? (
-          <Image
-            source={{ uri: notification.actor.avatar_url }}
-            style={styles.avatar}
+        {notification.actor ? (
+          <Avatar
+            avatarUrl={notification.actor.avatar_url}
+            username={notification.actor.username}
+            size={48}
+            level={notification.actor.level}
           />
         ) : (
           <View style={styles.iconCircle}>

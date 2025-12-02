@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, Image, Pressable } from 'react-native';
+import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PowerRing } from './PowerRing';
 import { RankBadge } from './RankBadge';
 import { BadgeDisplay } from './badges/BadgeDisplay';
 import { VerifiedCoachBadge } from './badges/VerifiedCoachBadge';
+import Avatar from './Avatar';
 import { getRankFromLevel } from '@/utils/getRankFromLevel';
 import { BadgeType } from '@/constants/badges';
 import Animated, {
@@ -148,7 +149,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
           {/* Avatar */}
           <View style={styles.avatarWrapper}>
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            <Avatar
+              avatarUrl={avatarUrl}
+              username={username}
+              size={108}
+              level={level}
+            />
           </View>
         </View>
 

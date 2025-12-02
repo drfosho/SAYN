@@ -20,6 +20,7 @@ import { PowerUpAnimation } from './PowerUpAnimation';
 import { BadgeDisplay } from './badges/BadgeDisplay';
 import { VerifiedPostBadge } from './VerifiedPostBadge';
 import { ProgressComparisonBadge } from './ProgressComparisonBadge';
+import Avatar from './Avatar';
 import { usePowerUp } from '@/hooks/usePowerUp';
 import { getRankFromLevel } from '@/utils/getRankFromLevel';
 import { BadgeType } from '@/constants/badges';
@@ -206,9 +207,11 @@ export const PostCard: React.FC<PostCardProps> = ({ post, index }) => {
           <View style={styles.avatarContainer}>
             <PowerRing size={70} ringWidth={5} />
             <View style={styles.avatarWrapper}>
-              <Image
-                source={{ uri: post.avatarUrl }}
-                style={styles.avatar}
+              <Avatar
+                avatarUrl={post.avatarUrl}
+                username={post.username}
+                size={50}
+                level={post.level}
               />
             </View>
           </View>

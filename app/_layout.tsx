@@ -83,6 +83,7 @@ export default function RootLayout() {
         <View style={styles.container}>
           <Stack
             screenOptions={{
+              headerShown: false,
               headerBackTitle: 'Back',
               headerBackTitleVisible: false,
               headerStyle: {
@@ -91,6 +92,9 @@ export default function RootLayout() {
               headerTintColor: '#fff',
               headerTitleStyle: {
                 fontWeight: '600',
+              },
+              contentStyle: {
+                backgroundColor: '#050814',
               },
             }}
           >
@@ -139,9 +143,7 @@ export default function RootLayout() {
             <Stack.Screen
               name="profile/[id]"
               options={{
-                title: 'Profile',
-                headerShown: true,
-                headerBackTitle: '',
+                headerShown: false,
               }}
             />
 
@@ -156,9 +158,7 @@ export default function RootLayout() {
             <Stack.Screen
               name="edit-profile"
               options={{
-                title: 'Edit Profile',
-                headerShown: true,
-                headerBackTitle: '',
+                headerShown: false,
               }}
             />
             <Stack.Screen
@@ -166,6 +166,12 @@ export default function RootLayout() {
               options={{
                 headerShown: false,
                 title: 'Badge Application',
+              }}
+            />
+            <Stack.Screen
+              name="badge-verification"
+              options={{
+                headerShown: false,
               }}
             />
             <Stack.Screen

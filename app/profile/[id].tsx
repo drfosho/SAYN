@@ -4,14 +4,16 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   Pressable,
   Dimensions,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { ChevronLeft, Settings, Shield } from 'lucide-react-native';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { StatsRow } from '@/components/StatsRow';
 import { AchievementScroll, Achievement } from '@/components/AchievementScroll';
@@ -140,8 +142,16 @@ export default function ProfileScreen() {
   // Loading state
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar style="light" />
+        {/* Custom Header */}
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
+            <ChevronLeft size={28} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter} />
+          <View style={styles.headerButton} />
+        </View>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#00e5ff" />
           <Text style={styles.loadingText}>Loading profile...</Text>
@@ -153,8 +163,16 @@ export default function ProfileScreen() {
   // Error state
   if (error || !profile) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar style="light" />
+        {/* Custom Header */}
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
+            <ChevronLeft size={28} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter} />
+          <View style={styles.headerButton} />
+        </View>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>
             {error || 'Profile not found'}
@@ -179,23 +197,24 @@ export default function ProfileScreen() {
     : 0;
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: profile?.username ? `@${profile.username}` : 'Profile',
-          headerShown: true,
-          headerBackTitle: '',
-          headerStyle: {
-            backgroundColor: '#050814',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
-        }}
-      />
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar style="light" />
+        {/* Custom Header */}
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
+            <ChevronLeft size={28} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>@{profile.username}</Text>
+          </View>
+          {isOwnProfile ? (
+            <TouchableOpacity onPress={handleSettings} style={styles.headerButton}>
+              <Settings size={24} color="white" />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.headerButton} />
+          )}
+        </View>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Profile Header */}
           <ProfileHeader
@@ -263,6 +282,35 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* Badge Verification Section - Only on own profile */}
+        {isOwnProfile && (
+          <TouchableOpacity
+            style={styles.badgeVerificationButton}
+            onPress={() => router.push('/badge-verification' as any)}
+          >
+            <View style={styles.badgeVerificationContent}>
+              <Shield size={24} color="#00d4ff" />
+              <View style={styles.badgeVerificationText}>
+                <Text style={styles.badgeVerificationTitle}>
+                  {profile.badge_verified
+                    ? `Verified ${profile.badge_type === 'natural' ? 'Natural' : 'Enhanced'}`
+                    : 'Earn Your Badge'}
+                </Text>
+                <Text style={styles.badgeVerificationSubtitle}>
+                  {profile.badge_verified
+                    ? 'View your verification status'
+                    : 'Verify your Natural or Enhanced status'}
+                </Text>
+              </View>
+              <ChevronLeft
+                size={20}
+                color="rgba(255,255,255,0.4)"
+                style={{ transform: [{ rotate: '180deg' }] }}
+              />
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Badges & Achievements */}
         <ProfileBadges
           level={profile.level}
@@ -325,7 +373,6 @@ export default function ProfileScreen() {
       {/* Badge Info Modal */}
       <BadgeInfoModal visible={showBadgeInfo} onClose={() => setShowBadgeInfo(false)} />
     </SafeAreaView>
-    </>
   );
 }
 
@@ -398,6 +445,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#050814',
   },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
   scrollView: {
     flex: 1,
   },
@@ -459,6 +531,34 @@ const styles = StyleSheet.create({
   reportButtonContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  badgeVerificationButton: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 255, 0.3)',
+    overflow: 'hidden',
+  },
+  badgeVerificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 14,
+  },
+  badgeVerificationText: {
+    flex: 1,
+  },
+  badgeVerificationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  badgeVerificationSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
   },
   actionButtonGradient: {
     paddingVertical: 16,

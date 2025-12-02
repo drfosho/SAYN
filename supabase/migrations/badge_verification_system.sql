@@ -230,6 +230,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Enable RLS
+ALTER TABLE badge_applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE badge_reports ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for badge_applications
+CREATE POLICY "Users can view own badge applications"
+  ON badge_applications FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own badge applications"
+  ON badge_applications FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- RLS Policies for badge_reports
+CREATE POLICY "Users can view own reports"
+  ON badge_reports FOR SELECT
+  USING (auth.uid() = reporter_id);
+
+CREATE POLICY "Users can create reports on others"
+  ON badge_reports FOR INSERT
+  WITH CHECK (auth.uid() = reporter_id AND auth.uid() != reported_user_id);
+
 -- Grant permissions
 GRANT SELECT, INSERT, UPDATE ON badge_applications TO authenticated;
 GRANT SELECT, INSERT ON badge_reports TO authenticated;

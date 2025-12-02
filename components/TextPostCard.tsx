@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View, Image, Platform, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, Platform, TouchableOpacity } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { PowerRing } from './PowerRing';
 import { RankBadge } from './RankBadge';
 import { ScanLines } from './ScanLines';
+import Avatar from './Avatar';
 import { usePowerUp } from '@/hooks/usePowerUp';
 import { getRankFromLevel } from '@/utils/getRankFromLevel';
 
@@ -121,9 +122,11 @@ export const TextPostCard: React.FC<TextPostCardProps> = ({ post, index }) => {
           <View style={styles.avatarContainer}>
             <PowerRing size={70} ringWidth={5} />
             <View style={styles.avatarWrapper}>
-              <Image
-                source={{ uri: post.avatarUrl }}
-                style={styles.avatar}
+              <Avatar
+                avatarUrl={post.avatarUrl}
+                username={post.username}
+                size={50}
+                level={post.level}
               />
             </View>
           </View>

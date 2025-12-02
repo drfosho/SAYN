@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { RecommendedUser } from '@/lib/api/search';
 import { BadgeDisplay } from '../badges/BadgeDisplay';
+import Avatar from '../Avatar';
 import { followUser } from '@/lib/api/follows';
 
 interface RecommendedUserCardProps {
@@ -50,15 +51,12 @@ export default function RecommendedUserCard({
       >
         {/* Avatar */}
         <View style={styles.avatarContainer}>
-          {user.avatar_url ? (
-            <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarPlaceholderText}>
-                {user.username.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
+          <Avatar
+            avatarUrl={user.avatar_url}
+            username={user.username}
+            size={64}
+            level={user.level}
+          />
         </View>
 
         {/* User Info */}
@@ -66,7 +64,7 @@ export default function RecommendedUserCard({
           <View style={styles.nameRow}>
             <Text style={styles.username}>{user.username}</Text>
             {user.badge_type && user.badge_verified && (
-              <BadgeDisplay badgeType={user.badge_type} size="small" verified={user.badge_verified} />
+              <BadgeDisplay badgeType={user.badge_type} size="small" />
             )}
           </View>
 

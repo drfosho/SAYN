@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList, SafeAreaView, Pressable, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, FlatList, SafeAreaView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { PostCard, Post } from '@/components/PostCard';
 import { TextPostCard, TextPost } from '@/components/TextPostCard';
 import { SAYNLogo } from '@/components/brand';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import Avatar from '@/components/Avatar';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPosts } from '@/lib/api/posts';
@@ -111,18 +112,12 @@ export default function SAYNFeedScreen() {
             }
           }}
         >
-          {profile?.avatar_url ? (
-            <Image
-              source={{ uri: profile.avatar_url }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={styles.profileIcon}>
-              <Text style={styles.profileEmoji}>
-                {profile?.username?.charAt(0)?.toUpperCase() || '👤'}
-              </Text>
-            </View>
-          )}
+          <Avatar
+            avatarUrl={profile?.avatar_url}
+            username={profile?.username}
+            size={42}
+            level={profile?.level}
+          />
           {/* User level badge */}
           {profile?.level && (
             <View style={styles.powerBadge}>

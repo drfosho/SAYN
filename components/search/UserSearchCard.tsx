@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { UserSearchResult } from '@/lib/api/search';
 import { BadgeDisplay } from '../badges/BadgeDisplay';
+import Avatar from '../Avatar';
 import { followUser, unfollowUser } from '@/lib/api/follows';
 
 interface UserSearchCardProps {
@@ -71,15 +72,13 @@ export default function UserSearchCard({
       >
         {/* Avatar */}
         <View style={styles.avatarContainer}>
-          {user.avatar_url ? (
-            <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarPlaceholderText}>
-                {user.username.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
+          <Avatar
+            avatarUrl={user.avatar_url}
+            username={user.username}
+            size={56}
+            level={user.level}
+            rank={user.rank}
+          />
           {/* Rank badge */}
           <View style={[styles.rankBadge, { backgroundColor: getRankColor() }]}>
             <Text style={styles.rankBadgeText}>L{user.level}</Text>
@@ -93,7 +92,7 @@ export default function UserSearchCard({
               {user.username}
             </Text>
             {user.badge_type && user.badge_verified && (
-              <BadgeDisplay badgeType={user.badge_type} size="small" verified={user.badge_verified} />
+              <BadgeDisplay badgeType={user.badge_type} size="small" />
             )}
           </View>
 
