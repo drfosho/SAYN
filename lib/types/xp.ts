@@ -8,7 +8,10 @@ export type XPSource =
   | 'power_up_given'
   | 'streak_bonus'
   | 'verification_bonus'
-  | 'admin_award';
+  | 'admin_award'
+  | 'comment'
+  | 'comment_power_up'
+  | 'give_comment_power_up';
 
 export type PostType =
   | 'daily_check_in'

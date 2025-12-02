@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Zap, MessageCircle, Edit2, Trash2 } from 'lucide-react-native';
 import { Comment } from '@/lib/api/types';
 import { RankBadge } from '../RankBadge';
+import DefaultAvatar from '../profile/DefaultAvatar';
 import { getRankFromLevel } from '@/utils/getRankFromLevel';
 import { layout, spacing, fontSize, fontWeight } from '@/constants';
 
@@ -63,11 +64,11 @@ export const CommentCard: React.FC<CommentCardProps> = ({
             style={styles.avatar}
           />
         ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarInitial}>
-              {profile?.username?.charAt(0).toUpperCase() || '?'}
-            </Text>
-          </View>
+          <DefaultAvatar
+            username={profile?.username || '?'}
+            size={layout.avatarXs}
+            rankColor={rank?.colors.primary || '#00d4ff'}
+          />
         )}
 
         {/* Comment content */}
@@ -162,16 +163,6 @@ const styles = StyleSheet.create({
     height: layout.avatarXs,
     borderRadius: layout.avatarXs / 2,
     backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  avatarPlaceholder: {
-    backgroundColor: '#00d4ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarInitial: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
-    color: '#0a0e27',
   },
   content: {
     flex: 1,
