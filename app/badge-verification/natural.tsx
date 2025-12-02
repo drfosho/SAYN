@@ -31,6 +31,7 @@ const TRAINING_DURATIONS = [
 ];
 
 export default function NaturalApplicationScreen() {
+  console.log('Natural application screen mounted');
   const { user } = useAuth();
   const [userStats, setUserStats] = useState<VerificationStats | null>(null);
   const [trainingDuration, setTrainingDuration] = useState('');
@@ -38,6 +39,7 @@ export default function NaturalApplicationScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('Natural screen useEffect running');
     loadStats();
   }, [user]);
 

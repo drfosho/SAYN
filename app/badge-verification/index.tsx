@@ -160,7 +160,10 @@ export default function BadgeVerificationScreen() {
           {/* Natural Badge Option */}
           <TouchableOpacity
             style={styles.badgeOption}
-            onPress={() => router.push('./natural' as any)}
+            onPress={() => {
+              console.log('Navigating to Natural application');
+              router.push('/badge-verification/natural');
+            }}
           >
             <LinearGradient
               colors={['rgba(0, 255, 136, 0.1)', 'rgba(0, 255, 136, 0.02)']}
@@ -198,7 +201,10 @@ export default function BadgeVerificationScreen() {
           {/* Enhanced Badge Option */}
           <TouchableOpacity
             style={styles.badgeOption}
-            onPress={() => router.push('./enhanced' as any)}
+            onPress={() => {
+              console.log('Navigating to Enhanced application');
+              router.push('/badge-verification/enhanced');
+            }}
           >
             <LinearGradient
               colors={['rgba(157, 78, 221, 0.1)', 'rgba(157, 78, 221, 0.02)']}

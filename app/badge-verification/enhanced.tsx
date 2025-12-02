@@ -23,6 +23,7 @@ import {
 } from '@/lib/api/badgeVerification';
 
 export default function EnhancedApplicationScreen() {
+  console.log('Enhanced application screen mounted');
   const { user } = useAuth();
   const [userStats, setUserStats] = useState<VerificationStats | null>(null);
   const [selfDisclosed, setSelfDisclosed] = useState(false);
@@ -31,6 +32,7 @@ export default function EnhancedApplicationScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('Enhanced screen useEffect running');
     loadStats();
   }, [user]);
 

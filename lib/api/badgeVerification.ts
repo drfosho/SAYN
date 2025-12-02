@@ -14,7 +14,7 @@ export interface BadgeApplication {
   user_id: string;
   badge_type_requested: 'natural' | 'enhanced';
   questionnaire_data?: any;
-  status: 'pending' | 'approved' | 'rejected' | 'auto_approved';
+  status: 'pending' | 'approved' | 'rejected' | 'auto_approved' | 'under_review';
   created_at: string;
   reviewed_at?: string;
   reviewed_by?: string;
