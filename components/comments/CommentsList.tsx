@@ -172,7 +172,7 @@ export const CommentsList: React.FC<CommentsListProps> = ({
 
 const styles = StyleSheet.create({
   list: {
-    paddingBottom: spacing['2xl'],
+    paddingBottom: 120, // Extra padding so last comment visible above input
   },
   repliesContainer: {
     // Replies are already indented in CommentCard

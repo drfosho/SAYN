@@ -11,9 +11,11 @@ import {
   Platform,
   Keyboard,
   FlatList,
+  Dimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   getComments,
@@ -27,6 +29,8 @@ import { CommentsList } from '@/components/comments/CommentsList';
 import { CommentInput } from '@/components/comments/CommentInput';
 import { layout, spacing, fontSize, fontWeight } from '@/constants';
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 /**
  * Comments Screen - Full-screen modal for viewing and posting comments
  * Shows post thumbnail, comments list, and input bar
@@ -35,11 +39,13 @@ export default function CommentsScreen() {
   const { postId } = useLocalSearchParams<{ postId: string }>();
   const { user, profile } = useAuth();
   const flatListRef = useRef<FlatList<any>>(null);
+  const insets = useSafeAreaInsets();
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // Reply/Edit state
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
@@ -47,6 +53,32 @@ export default function CommentsScreen() {
 
   // Post data (for display at top)
   const [post, setPost] = useState<any>(null);
+
+  // Listen to keyboard events
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        // Scroll to end when keyboard shows
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   useEffect(() => {
     loadComments();
@@ -56,7 +88,6 @@ export default function CommentsScreen() {
   // Auto-scroll when entering reply or edit mode
   useEffect(() => {
     if (replyingTo || editingComment) {
-      // Small delay to let keyboard animation start
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 300);
@@ -65,7 +96,6 @@ export default function CommentsScreen() {
 
   const loadPost = async () => {
     try {
-      // Import here to avoid circular dependency
       const { getPost } = await import('@/lib/api');
       const { data } = await getPost(postId);
       if (data) {
@@ -111,7 +141,6 @@ export default function CommentsScreen() {
       setSubmitting(true);
 
       if (editingComment) {
-        // Edit mode
         const { data, error } = await updateComment(editingComment.id, user.id, { text });
 
         if (error) {
@@ -119,13 +148,11 @@ export default function CommentsScreen() {
           return;
         }
 
-        // Update comment in list
         setComments((prev) =>
           prev.map((c) => {
             if (c.id === editingComment.id) {
               return data!;
             }
-            // Check replies too
             if (c.replies) {
               c.replies = c.replies.map((r) => (r.id === editingComment.id ? data! : r));
             }
@@ -135,7 +162,6 @@ export default function CommentsScreen() {
 
         setEditingComment(null);
       } else {
-        // Create mode
         const { data, error } = await createComment({
           post_id: postId,
           user_id: user.id,
@@ -148,9 +174,7 @@ export default function CommentsScreen() {
           return;
         }
 
-        // Add new comment to list
         if (replyingTo) {
-          // Add as reply
           setComments((prev) =>
             prev.map((c) => {
               if (c.id === replyingTo.id) {
@@ -165,16 +189,13 @@ export default function CommentsScreen() {
           );
           setReplyingTo(null);
         } else {
-          // Add as parent comment
           setComments((prev) => [...prev, { ...data!, replies: [] }]);
-          // Scroll to new comment
           setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
           }, 100);
         }
       }
 
-      // Dismiss keyboard after sending
       Keyboard.dismiss();
     } catch (error) {
       console.error('Submit comment error:', error);
@@ -205,9 +226,7 @@ export default function CommentsScreen() {
         return;
       }
 
-      // Remove comment from list
       if (comment.parent_comment_id) {
-        // Remove reply
         setComments((prev) =>
           prev.map((c) => {
             if (c.replies) {
@@ -218,7 +237,6 @@ export default function CommentsScreen() {
           })
         );
       } else {
-        // Remove parent comment
         setComments((prev) => prev.filter((c) => c.id !== comment.id));
       }
     } catch (error) {
@@ -245,7 +263,6 @@ export default function CommentsScreen() {
         return;
       }
 
-      // Update comment power count and user_has_powered status
       setComments((prev) =>
         prev.map((c) => {
           if (c.id === comment.id) {
@@ -255,7 +272,6 @@ export default function CommentsScreen() {
               power_count: c.power_count + (data?.isPoweredUp ? 1 : -1),
             };
           }
-          // Check replies too
           if (c.replies) {
             c.replies = c.replies.map((r) =>
               r.id === comment.id
@@ -271,7 +287,6 @@ export default function CommentsScreen() {
         })
       );
 
-      // Show success feedback when powering up (not un-powering)
       if (data?.isPoweredUp) {
         Alert.alert(
           '⚡ Powered Up!',
@@ -298,7 +313,6 @@ export default function CommentsScreen() {
     setEditingComment(null);
   };
 
-  // Handle input focus - scroll to bottom
   const handleInputFocus = () => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -309,13 +323,15 @@ export default function CommentsScreen() {
     return null;
   }
 
+  // Calculate bottom padding based on keyboard and safe area
+  const bottomPadding = Platform.OS === 'ios'
+    ? (keyboardHeight > 0 ? 0 : insets.bottom)
+    : 0;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
+    <View style={styles.container}>
+      {/* Safe area for top only */}
+      <View style={[styles.safeTop, { paddingTop: insets.top }]}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Comments</Text>
@@ -323,7 +339,14 @@ export default function CommentsScreen() {
             <X size={24} color="#ffffff" />
           </TouchableOpacity>
         </View>
+      </View>
 
+      {/* Main content area */}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 60 : 0}
+      >
         {/* Post preview */}
         {post && (
           <View style={styles.postPreview}>
@@ -341,7 +364,7 @@ export default function CommentsScreen() {
           </View>
         )}
 
-        {/* Comments list - takes remaining space */}
+        {/* Comments list */}
         <View style={styles.commentsContainer}>
           <CommentsList
             comments={comments}
@@ -357,26 +380,31 @@ export default function CommentsScreen() {
           />
         </View>
 
-        {/* Comment input - fixed at bottom */}
-        <CommentInput
-          currentUser={profile}
-          onSubmit={handleSubmitComment}
-          replyingTo={replyingTo?.profiles?.username || null}
-          onCancelReply={handleCancelReply}
-          editingText={editingComment?.text || null}
-          onCancelEdit={handleCancelEdit}
-          autoFocus={!!replyingTo || !!editingComment}
-          onFocus={handleInputFocus}
-          disabled={submitting}
-        />
+        {/* Comment input */}
+        <View style={[styles.inputWrapper, { paddingBottom: bottomPadding }]}>
+          <CommentInput
+            currentUser={profile}
+            onSubmit={handleSubmitComment}
+            replyingTo={replyingTo?.profiles?.username || null}
+            onCancelReply={handleCancelReply}
+            editingText={editingComment?.text || null}
+            onCancelEdit={handleCancelEdit}
+            autoFocus={!!replyingTo || !!editingComment}
+            onFocus={handleInputFocus}
+            disabled={submitting}
+          />
+        </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0a0e27',
+  },
+  safeTop: {
     backgroundColor: '#0a0e27',
   },
   keyboardAvoid: {
@@ -431,5 +459,8 @@ const styles = StyleSheet.create({
   },
   commentsContainer: {
     flex: 1,
+  },
+  inputWrapper: {
+    backgroundColor: '#0a0e27',
   },
 });
