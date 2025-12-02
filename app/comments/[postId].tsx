@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,6 +9,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  FlatList,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { X } from 'lucide-react-native';
@@ -32,6 +34,7 @@ import { layout, spacing, fontSize, fontWeight } from '@/constants';
 export default function CommentsScreen() {
   const { postId } = useLocalSearchParams<{ postId: string }>();
   const { user, profile } = useAuth();
+  const flatListRef = useRef<FlatList<any>>(null);
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +52,16 @@ export default function CommentsScreen() {
     loadComments();
     loadPost();
   }, [postId]);
+
+  // Auto-scroll when entering reply or edit mode
+  useEffect(() => {
+    if (replyingTo || editingComment) {
+      // Small delay to let keyboard animation start
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 300);
+    }
+  }, [replyingTo, editingComment]);
 
   const loadPost = async () => {
     try {
@@ -154,8 +167,15 @@ export default function CommentsScreen() {
         } else {
           // Add as parent comment
           setComments((prev) => [...prev, { ...data!, replies: [] }]);
+          // Scroll to new comment
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
         }
       }
+
+      // Dismiss keyboard after sending
+      Keyboard.dismiss();
     } catch (error) {
       console.error('Submit comment error:', error);
       Alert.alert('Error', 'Failed to post comment');
@@ -270,6 +290,21 @@ export default function CommentsScreen() {
     router.back();
   };
 
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingComment(null);
+  };
+
+  // Handle input focus - scroll to bottom
+  const handleInputFocus = () => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 300);
+  };
+
   if (!user || !profile) {
     return null;
   }
@@ -277,9 +312,9 @@ export default function CommentsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -306,7 +341,7 @@ export default function CommentsScreen() {
           </View>
         )}
 
-        {/* Comments list */}
+        {/* Comments list - takes remaining space */}
         <View style={styles.commentsContainer}>
           <CommentsList
             comments={comments}
@@ -318,18 +353,21 @@ export default function CommentsScreen() {
             loading={loading}
             refreshing={refreshing}
             onRefresh={handleRefresh}
+            listRef={flatListRef}
           />
         </View>
 
-        {/* Comment input */}
+        {/* Comment input - fixed at bottom */}
         <CommentInput
           currentUser={profile}
           onSubmit={handleSubmitComment}
           replyingTo={replyingTo?.profiles?.username || null}
-          onCancelReply={() => setReplyingTo(null)}
+          onCancelReply={handleCancelReply}
           editingText={editingComment?.text || null}
-          onCancelEdit={() => setEditingComment(null)}
+          onCancelEdit={handleCancelEdit}
           autoFocus={!!replyingTo || !!editingComment}
+          onFocus={handleInputFocus}
+          disabled={submitting}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -340,6 +378,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0e27',
+  },
+  keyboardAvoid: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

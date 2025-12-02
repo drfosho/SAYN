@@ -27,6 +27,8 @@ interface CommentInputProps {
   autoFocus?: boolean;
   editingText?: string | null; // For edit mode
   onCancelEdit?: () => void;
+  onFocus?: () => void; // Called when input gains focus
+  disabled?: boolean; // Disable input while submitting
 }
 
 const MAX_CHARS = 500;
@@ -46,6 +48,8 @@ export const CommentInput: React.FC<CommentInputProps> = ({
   autoFocus = false,
   editingText = null,
   onCancelEdit,
+  onFocus,
+  disabled = false,
 }) => {
   const [text, setText] = useState(editingText || '');
   const [inputHeight, setInputHeight] = useState(40);
@@ -56,7 +60,7 @@ export const CommentInput: React.FC<CommentInputProps> = ({
   const charCount = text.length;
   const showCounter = charCount >= SHOW_COUNTER_AT;
   const isOverLimit = charCount > MAX_CHARS;
-  const canSubmit = text.trim().length > 0 && !isOverLimit;
+  const canSubmit = text.trim().length > 0 && !isOverLimit && !disabled;
 
   // Get rank color for avatar
   const userRank = currentUser?.level ? getRankFromLevel(currentUser.level) : null;
@@ -139,6 +143,8 @@ export const CommentInput: React.FC<CommentInputProps> = ({
             autoCapitalize="sentences"
             autoCorrect
             contextMenuHidden={true}
+            onFocus={onFocus}
+            editable={!disabled}
           />
 
           {/* Character counter */}

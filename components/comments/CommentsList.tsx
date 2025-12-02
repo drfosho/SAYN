@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, RefObject } from 'react';
 import {
   StyleSheet,
   View,
@@ -22,6 +22,7 @@ interface CommentsListProps {
   loading?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
+  listRef?: RefObject<FlatList<any> | null>;
 }
 
 /**
@@ -39,6 +40,7 @@ export const CommentsList: React.FC<CommentsListProps> = ({
   loading = false,
   refreshing = false,
   onRefresh,
+  listRef,
 }) => {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
@@ -152,6 +154,7 @@ export const CommentsList: React.FC<CommentsListProps> = ({
 
   return (
     <FlatList
+      ref={listRef}
       data={comments}
       renderItem={renderComment}
       keyExtractor={(item) => item.id}
@@ -161,6 +164,8 @@ export const CommentsList: React.FC<CommentsListProps> = ({
       removeClippedSubviews={false} // Better for nested content
       maxToRenderPerBatch={10}
       windowSize={10}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
     />
   );
 };
