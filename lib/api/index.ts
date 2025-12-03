@@ -38,3 +38,6 @@ export * from './streaks';
 
 // Challenge operations
 export * from './challenges';
+
+// Weekly Recap operations
+export * from './weeklyRecap';

@@ -5,6 +5,11 @@ import { supabase } from '@/lib/supabase';
 import { getUserProfile } from '@/lib/supabase-auth';
 import { recordDailyLogin, StreakData } from '@/lib/api/streaks';
 import { initializeDailyChallenges } from '@/lib/api/challenges';
+import {
+  shouldShowWeeklyRecap,
+  hasUnviewedRecap,
+  generateWeeklyRecap,
+} from '@/lib/api/weeklyRecap';
 
 interface UserProfile {
   id: string;
@@ -31,10 +36,12 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   streakData: StreakData | null;
+  hasUnviewedWeeklyRecap: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshStreakData: () => Promise<void>;
+  checkWeeklyRecap: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -42,10 +49,12 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   streakData: null,
+  hasUnviewedWeeklyRecap: false,
   loading: true,
   signOut: async () => {},
   refreshProfile: async () => {},
   refreshStreakData: async () => {},
+  checkWeeklyRecap: async () => false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -53,9 +62,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [streakData, setStreakData] = useState<StreakData | null>(null);
+  const [hasUnviewedWeeklyRecap, setHasUnviewedWeeklyRecap] = useState(false);
   const [loading, setLoading] = useState(true);
   const appState = useRef(AppState.currentState);
   const lastLoginDate = useRef<string | null>(null);
+  const lastRecapCheck = useRef<string | null>(null);
 
   // Fetch user profile from database
   const fetchProfile = async (userId: string) => {
@@ -110,6 +121,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Check for weekly recap (internal helper that takes userId)
+  const checkWeeklyRecapForUser = async (userId: string): Promise<boolean> => {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Only check once per day
+    if (lastRecapCheck.current === today) {
+      return hasUnviewedWeeklyRecap;
+    }
+
+    try {
+      // Check if it's Monday (day to show recap)
+      if (shouldShowWeeklyRecap()) {
+        // Generate recap if needed (will not duplicate)
+        await generateWeeklyRecap(userId);
+      }
+
+      // Check for unviewed recaps
+      const hasUnviewed = await hasUnviewedRecap(userId);
+      setHasUnviewedWeeklyRecap(hasUnviewed);
+      lastRecapCheck.current = today;
+
+      if (hasUnviewed) {
+        console.log('📊 User has unviewed weekly recap');
+      }
+
+      return hasUnviewed;
+    } catch (error) {
+      console.error('Error checking weekly recap:', error);
+      return false;
+    }
+  };
+
+  // Public check function that uses current user
+  const checkWeeklyRecap = async (): Promise<boolean> => {
+    if (!user) return false;
+    return checkWeeklyRecapForUser(user.id);
+  };
+
   // Initialize auth state
   useEffect(() => {
     console.log('🔧 AuthContext: Initializing...');
@@ -125,6 +174,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await fetchProfile(session.user.id);
         // Record daily login
         await recordLogin(session.user.id);
+        // Check for weekly recap
+        await checkWeeklyRecapForUser(session.user.id);
         console.log('✅ AuthContext: Profile loaded, ready');
         setLoading(false);
       } else {
@@ -200,7 +251,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setProfile(null);
       setStreakData(null);
+      setHasUnviewedWeeklyRecap(false);
       lastLoginDate.current = null;
+      lastRecapCheck.current = null;
       console.log('✅ AuthContext: Sign out successful');
     } catch (error: any) {
       console.error('❌ AuthContext: Sign out error:', error.message);
@@ -213,10 +266,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     profile,
     streakData,
+    hasUnviewedWeeklyRecap,
     loading,
     signOut,
     refreshProfile,
     refreshStreakData,
+    checkWeeklyRecap,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

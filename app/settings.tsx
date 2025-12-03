@@ -268,6 +268,21 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.5)" />
           </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/weekly-recap')}
+            style={({ pressed }) => [
+              styles.settingItem,
+              styles.pressable,
+              pressed && styles.pressed,
+            ]}
+          >
+            <View style={styles.settingContent}>
+              <Ionicons name="calendar" size={20} color="#00e5ff" />
+              <Text style={styles.settingLabel}>Weekly Recap</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.5)" />
+          </Pressable>
         </View>
 
         {/* About Section */}
