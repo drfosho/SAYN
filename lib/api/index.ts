@@ -32,3 +32,9 @@ export * from './notifications';
 
 // Comment operations
 export * from './comments';
+
+// Streak operations
+export * from './streaks';
+
+// Challenge operations
+export * from './challenges';

@@ -11,7 +11,10 @@ export type XPSource =
   | 'admin_award'
   | 'comment'
   | 'comment_power_up'
-  | 'give_comment_power_up';
+  | 'give_comment_power_up'
+  | 'login_streak_milestone'
+  | 'post_streak_milestone'
+  | 'daily_challenge';
 
 export type PostType =
   | 'daily_check_in'

@@ -1,7 +1,10 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
+import { AppState, AppStateStatus } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { getUserProfile } from '@/lib/supabase-auth';
+import { recordDailyLogin, StreakData } from '@/lib/api/streaks';
+import { initializeDailyChallenges } from '@/lib/api/challenges';
 
 interface UserProfile {
   id: string;
@@ -27,25 +30,32 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
+  streakData: StreakData | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshStreakData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   profile: null,
+  streakData: null,
   loading: true,
   signOut: async () => {},
   refreshProfile: async () => {},
+  refreshStreakData: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [loading, setLoading] = useState(true);
+  const appState = useRef(AppState.currentState);
+  const lastLoginDate = useRef<string | null>(null);
 
   // Fetch user profile from database
   const fetchProfile = async (userId: string) => {
@@ -64,22 +74,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Record daily login and update streak
+  const recordLogin = async (userId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Only record login once per day
+    if (lastLoginDate.current === today) {
+      return;
+    }
+
+    console.log('📅 Recording daily login...');
+    const result = await recordDailyLogin(userId);
+
+    if (result.success && result.streakData) {
+      setStreakData(result.streakData);
+      lastLoginDate.current = today;
+
+      if (result.milestoneAchieved) {
+        console.log(`🏆 Streak milestone achieved: ${result.milestoneAchieved.label}`);
+      }
+    }
+
+    // Initialize daily challenges
+    await initializeDailyChallenges(userId);
+  };
+
+  // Refresh streak data
+  const refreshStreakData = async () => {
+    if (user) {
+      const { getUserStreakData } = await import('@/lib/api/streaks');
+      const data = await getUserStreakData(user.id);
+      if (data) {
+        setStreakData(data);
+      }
+    }
+  };
+
   // Initialize auth state
   useEffect(() => {
     console.log('🔧 AuthContext: Initializing...');
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('🔑 AuthContext: Session check complete');
 
       if (session?.user) {
         console.log('✅ AuthContext: Found existing session for user:', session.user.id);
         setSession(session);
         setUser(session.user);
-        fetchProfile(session.user.id).finally(() => {
-          console.log('✅ AuthContext: Profile loaded, ready');
-          setLoading(false);
-        });
+        await fetchProfile(session.user.id);
+        // Record daily login
+        await recordLogin(session.user.id);
+        console.log('✅ AuthContext: Profile loaded, ready');
+        setLoading(false);
       } else {
         console.log('❌ AuthContext: No existing session found');
         setSession(null);
@@ -91,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔔 AuthContext: Auth state changed -', event);
 
       if (event === 'SIGNED_IN') {
@@ -106,9 +153,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
+        // Record login on sign in
+        if (event === 'SIGNED_IN') {
+          await recordLogin(session.user.id);
+        }
       } else {
         setProfile(null);
+        setStreakData(null);
       }
     });
 
@@ -118,6 +170,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Listen for app state changes to record login when app comes to foreground
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active' &&
+        user
+      ) {
+        console.log('📱 App came to foreground, checking daily login...');
+        await recordLogin(user.id);
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [user]);
+
   // Sign out
   const signOut = async () => {
     console.log('🚪 AuthContext: Signing out...');
@@ -126,6 +199,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setUser(null);
       setProfile(null);
+      setStreakData(null);
+      lastLoginDate.current = null;
       console.log('✅ AuthContext: Sign out successful');
     } catch (error: any) {
       console.error('❌ AuthContext: Sign out error:', error.message);
@@ -137,9 +212,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     user,
     profile,
+    streakData,
     loading,
     signOut,
     refreshProfile,
+    refreshStreakData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

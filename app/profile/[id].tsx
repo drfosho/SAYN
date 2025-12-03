@@ -22,10 +22,13 @@ import { FollowButton } from '@/components/FollowButton';
 import { BadgeInfoModal } from '@/components/badges/BadgeInfoModal';
 import { ReportButton } from '@/components/ReportButton';
 import { ProfileBadges } from '@/components/profile/ProfileBadges';
+import { StreakWidget } from '@/components/streaks/StreakWidget';
+import { DailyChallenges } from '@/components/streaks/DailyChallenges';
 import { useFollow } from '@/hooks/useFollow';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProfile } from '@/lib/api/profiles';
 import { getUserPosts } from '@/lib/api/posts';
+import { getUserDailyChallenges, UserChallengeProgress } from '@/lib/api/challenges';
 import type { Profile as DBProfile, Post as DBPost } from '@/lib/api/types';
 import Animated, {
   useSharedValue,
@@ -40,12 +43,13 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function ProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user, profile: currentUserProfile } = useAuth();
+  const { user, profile: currentUserProfile, streakData } = useAuth();
   const { isFollowing, toggleFollow } = useFollow();
 
   const [profile, setProfile] = useState<DBProfile | null>(null);
   const [posts, setPosts] = useState<GridPost[]>([]);
   const [rawPosts, setRawPosts] = useState<DBPost[]>([]);
+  const [challenges, setChallenges] = useState<UserChallengeProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
@@ -101,6 +105,12 @@ export default function ProfileScreen() {
           }));
 
           setPosts(gridPosts);
+        }
+
+        // Fetch daily challenges for own profile
+        if (isOwnProfile && user) {
+          const userChallenges = await getUserDailyChallenges(user.id);
+          setChallenges(userChallenges);
         }
 
         setError(null);
@@ -309,6 +319,26 @@ export default function ProfileScreen() {
               />
             </View>
           </TouchableOpacity>
+        )}
+
+        {/* Streaks & Challenges - Only on own profile */}
+        {isOwnProfile && streakData && (
+          <View style={styles.streaksSection}>
+            <StreakWidget
+              loginStreak={streakData.loginStreak}
+              postStreak={streakData.postStreak}
+              longestLoginStreak={streakData.longestLoginStreak}
+              longestPostStreak={streakData.longestPostStreak}
+              streakFreezeCount={streakData.streakFreezeCount}
+            />
+          </View>
+        )}
+
+        {/* Daily Challenges - Only on own profile */}
+        {isOwnProfile && challenges.length > 0 && (
+          <View style={styles.challengesSection}>
+            <DailyChallenges challenges={challenges} />
+          </View>
         )}
 
         {/* Badges & Achievements */}
@@ -531,6 +561,14 @@ const styles = StyleSheet.create({
   reportButtonContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  streaksSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  challengesSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   badgeVerificationButton: {
     marginHorizontal: 20,

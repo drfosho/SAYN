@@ -22,6 +22,15 @@ export interface Profile {
   experience_level: string | null;
   created_at: string;
   updated_at: string;
+  // Streak fields
+  login_streak?: number;
+  longest_login_streak?: number;
+  post_streak?: number;
+  longest_post_streak?: number;
+  last_login_date?: string | null;
+  last_post_date?: string | null;
+  streak_freeze_count?: number;
+  last_streak_freeze_used?: string | null;
 }
 
 export interface Post {
