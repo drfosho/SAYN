@@ -53,10 +53,19 @@ export default function UploadScreen() {
   };
 
   const handleChooseFromLibrary = async () => {
-    const photo = await pickImageFromLibrary();
-    if (photo) {
-      setCapturedPhoto(photo);
-      setMode('postType'); // Go to post type selection first
+    console.log('🔘 Photo Library button pressed');
+    try {
+      const photo = await pickImageFromLibrary();
+      if (photo) {
+        console.log('✅ Photo selected:', photo.uri);
+        setCapturedPhoto(photo);
+        setMode('postType'); // Go to post type selection first
+      } else {
+        console.log('❌ No photo returned from picker');
+      }
+    } catch (error) {
+      console.error('❌ Error in handleChooseFromLibrary:', error);
+      Alert.alert('Error', 'Something went wrong while accessing your photos. Please try again.');
     }
   };
 

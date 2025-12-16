@@ -13,6 +13,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "SAYN needs camera access to capture your workout progress photos.",
         "NSPhotoLibraryUsageDescription": "SAYN needs photo library access to share your fitness journey.",
+        "NSPhotoLibraryAddUsageDescription": "SAYN needs permission to save photos to your library.",
         "NSMicrophoneUsageDescription": "SAYN needs microphone access for video posts."
       }
     },
@@ -27,7 +28,8 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -39,9 +41,23 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "SAYN needs access to your photos to share your fitness progress.",
+          "cameraPermission": "SAYN needs camera access to take progress photos."
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Allow SAYN to capture your workout progress photos."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "SAYN needs access to your photos to share your fitness progress.",
+          "savePhotosPermission": "SAYN needs permission to save photos to your library."
         }
       ]
     ],
