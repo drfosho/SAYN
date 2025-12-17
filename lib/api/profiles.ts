@@ -242,38 +242,48 @@ export async function checkUsernameAvailability(
 
 /**
  * Upload avatar image to Supabase storage
+ * Uses ArrayBuffer instead of Blob for React Native compatibility
  */
 export async function uploadAvatar(
   userId: string,
   imageUri: string
 ): Promise<ApiResponse<string>> {
   try {
-    // Convert image URI to blob
+    console.log('📤 Starting avatar upload for user:', userId);
+    console.log('📤 Image URI:', imageUri);
+
+    // Convert image URI to ArrayBuffer (React Native compatible)
     const response = await fetch(imageUri);
-    const blob = await response.blob();
+    const arrayBuffer = await response.arrayBuffer();
 
     // Create file path: avatars/{userId}/avatar_{timestamp}.jpg
     const timestamp = Date.now();
     const filePath = `${userId}/avatar_${timestamp}.jpg`;
 
+    console.log('📤 Uploading to path:', filePath);
+
     // Upload to Supabase storage
     const { data, error } = await supabase.storage
       .from('avatars')
-      .upload(filePath, blob, {
+      .upload(filePath, arrayBuffer, {
         contentType: 'image/jpeg',
-        upsert: false,
+        upsert: true, // Allow overwriting
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('📤 Supabase upload error:', error);
+      throw error;
+    }
 
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('avatars')
       .getPublicUrl(filePath);
 
+    console.log('✅ Avatar uploaded successfully:', urlData.publicUrl);
     return { data: urlData.publicUrl, error: null };
   } catch (error: any) {
-    console.error('Upload avatar error:', error);
+    console.error('❌ Upload avatar error:', error);
     return { data: null, error: error.message };
   }
 }
