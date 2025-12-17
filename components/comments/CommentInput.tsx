@@ -5,7 +5,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
 } from 'react-native';
 import { Send, X } from 'lucide-react-native';
 // Minimal user type that works with both Profile and UserProfile from AuthContext
@@ -14,8 +13,7 @@ interface CommentUser {
   avatar_url?: string | null;
   level?: number;
 }
-import DefaultAvatar from '../profile/DefaultAvatar';
-import { getRankFromLevel } from '@/utils/getRankFromLevel';
+import Avatar from '../Avatar';
 import { layout, spacing, fontSize, fontWeight } from '@/constants';
 
 interface CommentInputProps {
@@ -61,10 +59,6 @@ export const CommentInput: React.FC<CommentInputProps> = ({
   const showCounter = charCount >= SHOW_COUNTER_AT;
   const isOverLimit = charCount > MAX_CHARS;
   const canSubmit = text.trim().length > 0 && !isOverLimit && !disabled;
-
-  // Get rank color for avatar
-  const userRank = currentUser?.level ? getRankFromLevel(currentUser.level) : null;
-  const rankColor = userRank?.colors.primary || '#00d4ff';
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
@@ -112,18 +106,13 @@ export const CommentInput: React.FC<CommentInputProps> = ({
       {/* Input row */}
       <View style={styles.inputRow}>
         {/* User avatar */}
-        {currentUser?.avatar_url ? (
-          <Image
-            source={{ uri: currentUser.avatar_url }}
-            style={styles.avatar}
-          />
-        ) : (
-          <DefaultAvatar
-            username={currentUser?.username || '?'}
-            size={layout.avatarXs}
-            rankColor={rankColor}
-          />
-        )}
+        <Avatar
+          avatarUrl={currentUser?.avatar_url}
+          username={currentUser?.username || '?'}
+          size={layout.avatarXs}
+          level={currentUser?.level}
+          showRankRing={false}
+        />
 
         {/* Text input */}
         <View style={styles.inputContainer}>

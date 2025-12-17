@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Image, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { formatDistanceToNow } from 'date-fns';
 import { Zap, MessageCircle, Edit2, Trash2 } from 'lucide-react-native';
 import { Comment } from '@/lib/api/types';
 import { RankBadge } from '../RankBadge';
-import DefaultAvatar from '../profile/DefaultAvatar';
+import Avatar from '../Avatar';
 import { getRankFromLevel } from '@/utils/getRankFromLevel';
 import { layout, spacing, fontSize, fontWeight } from '@/constants';
 
@@ -58,18 +58,13 @@ export const CommentCard: React.FC<CommentCardProps> = ({
       {/* Avatar and content */}
       <View style={styles.row}>
         {/* Avatar */}
-        {profile?.avatar_url ? (
-          <Image
-            source={{ uri: profile.avatar_url }}
-            style={styles.avatar}
-          />
-        ) : (
-          <DefaultAvatar
-            username={profile?.username || '?'}
-            size={layout.avatarXs}
-            rankColor={rank?.colors.primary || '#00d4ff'}
-          />
-        )}
+        <Avatar
+          avatarUrl={profile?.avatar_url}
+          username={profile?.username || '?'}
+          size={layout.avatarXs}
+          level={profile?.level}
+          showRankRing={false}
+        />
 
         {/* Comment content */}
         <View style={styles.content}>

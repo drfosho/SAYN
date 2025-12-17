@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Alert, ActionSheetIOS, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Alert, ActionSheetIOS, Platform, Linking, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 interface AvatarPickerProps {
@@ -16,67 +16,125 @@ export default function AvatarPicker({
   username,
 }: AvatarPickerProps) {
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const requestPermissions = async (type: 'camera' | 'library') => {
-    if (type === 'camera') {
+  const requestCameraPermission = async (): Promise<boolean> => {
+    try {
+      console.log('📷 Requesting camera permission for avatar...');
+      const { status: existingStatus } = await ImagePicker.getCameraPermissionsAsync();
+
+      if (existingStatus === 'granted') {
+        return true;
+      }
+
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      console.log('📷 Camera permission status:', status);
+
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Camera permission is required to take photos.');
+        Alert.alert(
+          'Camera Permission Required',
+          'SAYN needs camera access to take profile photos. Please enable it in Settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+          ]
+        );
         return false;
       }
-    } else {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Photo library permission is required to choose photos.');
-        return false;
-      }
+      return true;
+    } catch (error) {
+      console.error('❌ Error requesting camera permission:', error);
+      return false;
     }
-    return true;
+  };
+
+  const requestMediaLibraryPermission = async (): Promise<boolean> => {
+    try {
+      console.log('📸 Requesting media library permission for avatar...');
+      const { status: existingStatus } = await ImagePicker.getMediaLibraryPermissionsAsync();
+
+      if (existingStatus === 'granted') {
+        return true;
+      }
+
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('📸 Media library permission status:', status);
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Photo Library Permission Required',
+          'SAYN needs access to your photos to set a profile picture. Please enable it in Settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+          ]
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('❌ Error requesting media library permission:', error);
+      return false;
+    }
   };
 
   const pickImageFromCamera = async () => {
-    const hasPermission = await requestPermissions('camera');
+    const hasPermission = await requestCameraPermission();
     if (!hasPermission) return;
 
+    setLoading(true);
     try {
+      console.log('📷 Launching camera for avatar...');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [1, 1],
+        aspect: [1, 1], // Square for avatar
         quality: 0.8,
       });
 
+      console.log('📷 Camera result:', result.canceled ? 'canceled' : 'image captured');
+
       if (!result.canceled && result.assets[0]) {
         const uri = result.assets[0].uri;
+        console.log('✅ Avatar photo captured:', uri);
         setPreviewUri(uri);
         onImageSelected(uri);
       }
     } catch (error) {
-      console.error('Camera error:', error);
-      Alert.alert('Error', 'Failed to open camera');
+      console.error('❌ Camera error:', error);
+      Alert.alert('Error', 'Failed to open camera. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const pickImageFromLibrary = async () => {
-    const hasPermission = await requestPermissions('library');
+    const hasPermission = await requestMediaLibraryPermission();
     if (!hasPermission) return;
 
+    setLoading(true);
     try {
+      console.log('📸 Launching photo library for avatar...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [1, 1],
+        aspect: [1, 1], // Square for avatar
         quality: 0.8,
       });
 
+      console.log('📸 Photo library result:', result.canceled ? 'canceled' : 'image selected');
+
       if (!result.canceled && result.assets[0]) {
         const uri = result.assets[0].uri;
+        console.log('✅ Avatar image selected:', uri);
         setPreviewUri(uri);
         onImageSelected(uri);
       }
     } catch (error) {
-      console.error('Image picker error:', error);
-      Alert.alert('Error', 'Failed to open photo library');
+      console.error('❌ Image picker error:', error);
+      Alert.alert('Error', 'Failed to open photo library. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -156,8 +214,12 @@ export default function AvatarPicker({
           </View>
         )}
 
-        <Pressable style={styles.changeButton} onPress={showOptions}>
-          <Text style={styles.changeButtonText}>CHANGE PHOTO</Text>
+        <Pressable style={styles.changeButton} onPress={showOptions} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator size="small" color="#00e5ff" />
+          ) : (
+            <Text style={styles.changeButtonText}>CHANGE PHOTO</Text>
+          )}
         </Pressable>
       </View>
     </View>
