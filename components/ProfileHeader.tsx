@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { PowerRing } from './PowerRing';
 import { RankBadge } from './RankBadge';
 import { BadgeDisplay } from './badges/BadgeDisplay';
 import { VerifiedCoachBadge } from './badges/VerifiedCoachBadge';
@@ -118,42 +117,27 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           )}
         </View>
 
-        {/* Avatar with power rings based on rank */}
+        {/* Avatar with clean rank-based styling */}
         <View style={styles.avatarSection}>
-          {/* Outer aura based on rank */}
-          <View style={styles.auraContainer}>
-            <LinearGradient
-              colors={userRank.gradientColors}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.aura}
-            />
-          </View>
+          {/* Subtle glow effect behind avatar - only one clean layer */}
+          <View
+            style={[
+              styles.avatarGlow,
+              {
+                backgroundColor: userRank.colors.primary,
+                shadowColor: userRank.colors.primary,
+              }
+            ]}
+          />
 
-          {/* Power rings based on rank tier */}
-          {userRank.ringCount > 0 && (
-            <View style={styles.ringContainer}>
-              {Array.from({ length: userRank.ringCount }).map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.ringWrapper,
-                    { transform: [{ scale: 1 + i * 0.15 }] },
-                  ]}
-                >
-                  <PowerRing size={140} ringWidth={5} />
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Avatar */}
-          <View style={styles.avatarWrapper}>
+          {/* Avatar with single clean rank ring */}
+          <View style={styles.avatarContainer}>
             <Avatar
               avatarUrl={avatarUrl}
               username={username}
-              size={108}
+              size={110}
               level={level}
+              showRankRing={true}
             />
           </View>
         </View>
@@ -260,46 +244,24 @@ const styles = StyleSheet.create({
   },
   avatarSection: {
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
+    height: 130,
   },
-  auraContainer: {
+  avatarGlow: {
     position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    opacity: 0.3,
-  },
-  aura: {
-    flex: 1,
-    borderRadius: 90,
-    shadowColor: '#ff0080',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    opacity: 0.15,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
+    shadowOpacity: 0.8,
     shadowRadius: 30,
-    elevation: 30,
+    elevation: 10,
   },
-  ringContainer: {
-    marginBottom: -70,
-  },
-  ringWrapper: {
-    position: 'absolute',
-  },
-  avatarWrapper: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 6,
-    borderColor: '#000000',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 16,
-  },
-  avatar: {
-    width: '100%',
-    height: '100%',
+  avatarContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   userInfo: {
     alignItems: 'center',

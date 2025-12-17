@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { ChevronLeft, Settings, Shield } from 'lucide-react-native';
+import { ChevronLeft, Settings, Shield, TrendingUp, Target } from 'lucide-react-native';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { StatsRow } from '@/components/StatsRow';
 import { AchievementScroll, Achievement } from '@/components/AchievementScroll';
@@ -40,6 +40,17 @@ import Animated, {
 const { width } = Dimensions.get('window');
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// Helper function to format experience level for display
+const formatExperienceLevel = (level: string): string => {
+  const levels: Record<string, string> = {
+    'beginner': 'Beginner',
+    'intermediate': 'Intermediate',
+    'advanced': 'Advanced',
+    'expert': 'Expert',
+  };
+  return levels[level] || level;
+};
 
 export default function ProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -251,6 +262,41 @@ export default function ProfileScreen() {
           onFollowersPress={() => router.push('/followers')}
           onFollowingPress={() => router.push('/following')}
         />
+
+        {/* Fitness Journey Section - Show experience level and goals */}
+        {(profile.experience_level || (profile.fitness_goals && profile.fitness_goals.length > 0)) && (
+          <View style={styles.fitnessSection}>
+            <Text style={styles.fitnessSectionTitle}>Fitness Journey</Text>
+
+            {/* Experience Level */}
+            {profile.experience_level && (
+              <View style={styles.fitnessRow}>
+                <TrendingUp size={18} color="#00d4ff" />
+                <Text style={styles.fitnessLabel}>Experience:</Text>
+                <Text style={styles.fitnessValue}>
+                  {formatExperienceLevel(profile.experience_level)}
+                </Text>
+              </View>
+            )}
+
+            {/* Fitness Goals */}
+            {profile.fitness_goals && profile.fitness_goals.length > 0 && (
+              <View style={styles.goalsSection}>
+                <View style={styles.goalsHeader}>
+                  <Target size={18} color="#ff6b00" />
+                  <Text style={styles.fitnessLabel}>Goals:</Text>
+                </View>
+                <View style={styles.goalsChips}>
+                  {profile.fitness_goals.map((goal, index) => (
+                    <View key={index} style={styles.goalChip}>
+                      <Text style={styles.goalChipText}>{goal}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
@@ -689,5 +735,66 @@ const styles = StyleSheet.create({
     textShadowColor: '#00ff88',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 6,
+  },
+  // Fitness Journey Section Styles
+  fitnessSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  fitnessSectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 1,
+    marginBottom: 16,
+  },
+  fitnessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  fitnessLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '600',
+  },
+  fitnessValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  goalsSection: {
+    marginTop: 4,
+  },
+  goalsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  goalsChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingLeft: 28,
+  },
+  goalChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 107, 0, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 0, 0.3)',
+  },
+  goalChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#ff6b00',
   },
 });
