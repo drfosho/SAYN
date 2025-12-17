@@ -181,9 +181,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 300,
+    minHeight: 300,
     borderBottomWidth: 3,
     borderBottomColor: 'rgba(0, 229, 255, 0.3)',
+    paddingBottom: 20,
   },
   background: {
     flex: 1,

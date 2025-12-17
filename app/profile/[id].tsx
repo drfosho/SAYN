@@ -52,6 +52,15 @@ const formatExperienceLevel = (level: string): string => {
   return levels[level] || level;
 };
 
+// Helper function to format fitness goal for display
+// Converts "build_muscle" to "Build Muscle"
+const formatGoal = (goal: string): string => {
+  return goal
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export default function ProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, profile: currentUserProfile, streakData } = useAuth();
@@ -289,7 +298,7 @@ export default function ProfileScreen() {
                 <View style={styles.goalsChips}>
                   {profile.fitness_goals.map((goal, index) => (
                     <View key={index} style={styles.goalChip}>
-                      <Text style={styles.goalChipText}>{goal}</Text>
+                      <Text style={styles.goalChipText}>{formatGoal(goal)}</Text>
                     </View>
                   ))}
                 </View>
