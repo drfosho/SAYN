@@ -280,8 +280,8 @@ All rights reserved. This is proprietary software currently in prototype phase.
 ## 📧 Contact
 
 **Founder:** kdog
-**Email:** [your-email]
-**X/Twitter:** [@your-handle]
+**Email:** kevin@dealsletter.io
+**X/Twitter:** @kdogbuilds
 
 ---
 
